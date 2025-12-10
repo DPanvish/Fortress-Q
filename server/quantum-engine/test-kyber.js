@@ -1,4 +1,4 @@
-const {MlKem1024} = require("crystals-kyber-js");
+import {MlKem1024} from 'crystals-kyber-js';
 
 async function runQuantumCheck(){
     console.log("---------------------------------------------");
