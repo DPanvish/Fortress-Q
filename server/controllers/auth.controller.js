@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import { MlKem1024 } from "crystals-kyber-js";
 
 const toBase64 = (arr) => {
-    Buffer.from(arr).toString('base64');
+    return Buffer.from(arr).toString('base64');
 }
 
 // Register User
@@ -42,7 +42,7 @@ export const registerUser = async (req, res) => {
         // Create JWT Token
         const payload = {
             user: {
-                id: newUser.id
+                id: newUser._id
             }
         }
 
@@ -74,13 +74,13 @@ export const loginUser = async (req, res) => {
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
-        if(!isMath){
+        if(!isMatch){
             return res.status(400).json({msg: "Invalid Credentials"});
         }
 
         const payload = {
             user: {
-                id: user.id
+                id: user._id
             }
         };
 
