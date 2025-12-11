@@ -1,4 +1,5 @@
 import React, {useCallback, useState} from 'react'
+import { UploadCloud, File, X, CheckCircle, Shield } from 'lucide-react';
 
 const FileUpload = () => {
     const [dragActive, setDragActive] = useState(false);
