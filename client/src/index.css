@@ -1,1 +1,32 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
 @import "tailwindcss";
+
+:root {
+  font-family: 'Outfit', sans-serif;
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-slate-950 text-slate-200 antialiased;
+  /* subtle grid pattern for tech feel */
+  background-image: linear-gradient(to right, #1e293b 1px, transparent 1px),
+  linear-gradient(to bottom, #1e293b 1px, transparent 1px);
+  background-size: 4rem 4rem;
+  /* Fade the grid out slightly */
+  background-position: center top;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
