@@ -1,5 +1,4 @@
-import File from '../models/file.model';
-import User from '../models/user.model';
+import File from '../models/file.model.js';
 import fs from 'fs';
 
 const uploadToIPFS = async(filePath) => {

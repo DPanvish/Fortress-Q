@@ -28,7 +28,7 @@ export const registerUser = async (req, res) => {
 
         // Generate Classical Keys (Vulnerable Layer)
         const keyPair = ec.genKeyPair();
-        const ecdsaPrv = keyPair.getPrivateKey("hex");
+        const ecdsaPrv = keyPair.getPrivate("hex");
         const ecdsaPub = keyPair.getPublic("hex");
         const walletAddress = "0x" + ecdsaPub.substring(0, 40);
 
