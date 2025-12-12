@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, ChevronLeft } from 'lucide-react';
+import {ShieldCheck, ChevronLeft, WalletIcon} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import FileUpload from '../components/FileUpload';
 
@@ -23,6 +23,13 @@ const Dashboard = () => {
                         </span>
                     </div>
                     <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => navigate('/wallet')}
+                            className="flex items-center gap-2 text-slate-300 hover:text-cyan-400 transition font-medium text-sm mr-2"
+                        >
+                            <WalletIcon className="w-4 h-4" />
+                            My Wallet
+                        </button>
                         <button
                             onClick={() => navigate('/')}
                             className="text-slate-400 hover:text-white text-sm font-medium transition"

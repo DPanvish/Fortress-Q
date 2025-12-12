@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/HomePage';
 import Dashboard from './pages/Dashboard';
+import Wallet from './pages/Wallet';
 
 const App = () => {
     return (
@@ -15,6 +16,7 @@ const App = () => {
                 <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/wallet" element={<Wallet />} />
                 </Routes>
 
             </div>
