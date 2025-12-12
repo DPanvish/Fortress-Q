@@ -118,7 +118,10 @@ const Wallet = () => {
 
             {/* Action Button */}
             <div className="mt-12">
-                <button className="px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl font-bold text-white shadow-lg hover:scale-105 transition-transform">
+                <button
+                    onClick={() => navigate('/migrate')}
+                    className="px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl font-bold text-white shadow-lg hover:scale-105 transition-transform"
+                >
                     Simulate Quantum Migration
                 </button>
             </div>
