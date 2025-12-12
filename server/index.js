@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
 import authRoutes from './routes/auth.routes.js';
+import fileRoutes from './routes/file.routes.js';
 
 dotenv.config();
 
@@ -20,6 +21,7 @@ app.get("/", (req, res) => {
     res.send("Fortress Q API is Running. Quantum Security Active.")
 });
 app.use("/api/auth", authRoutes);
+app.use("/api/files", fileRoutes);
 
 // Start Server
 const PORT = process.env.PORT || 5000;
