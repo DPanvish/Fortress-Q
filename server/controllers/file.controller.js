@@ -32,7 +32,7 @@ export const uploadFile = async (req, res) => {
 
         res.json({
             success: true,
-            msg: "File Secured and Uploaded to Decentralized Storage."
+            msg: "File Secured and Uploaded to Decentralized Storage.",
             file: {
                 id: newFile._id,
                 name: newFile.originalName,
