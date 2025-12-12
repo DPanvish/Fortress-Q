@@ -1,7 +1,12 @@
-import User from '../models/User.js';
+import User from '../models/user.model.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { MlKem1024 } from "crystals-kyber-js";
+import elliptic from 'elliptic';
+
+// Classical Elliptic Curve Cryptography (ECDSA)
+const EC = elliptic.ec;
+const ec = new EC('secp256k1');
 
 const toBase64 = (arr) => {
     return Buffer.from(arr).toString('base64');
@@ -21,20 +26,29 @@ export const registerUser = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
+        // Generate Classical Keys (Vulnerable Layer)
+        const keyPair = ec.genKeyPair();
+        const ecdsaPrv = keyPair.getPrivateKey("hex");
+        const ecdsaPub = keyPair.getPublic("hex");
+        const walletAddress = "0x" + ecdsaPub.substring(0, 40);
+
         // Generate Quantum Keys (Post-Quantum Security)
         const recipient = new MlKem1024();
-        const [pk, sk] = await recipient.generateKeyPair();
+        const [pqcPk, pqcSk] = await recipient.generateKeyPair();
 
         // Convert keys to Base64 for storage
-        const publicKeyBase64 = toBase64(pk);
-        const privateKeyBase64 = toBase64(sk);
+        const publicKeyBase64 = toBase64(pqcPk);
+        const privateKeyBase64 = toBase64(pqcSk);
 
         const newUser = new User({
             username,
             email,
             password: hashedPassword,
+            walletAddressETH: walletAddress,
+            ecdsaPublicKey: ecdsaPub,
+            encryptedEcdsaPrivateKey: ecdsaPrv,
             quantumPublicKey: publicKeyBase64,
-            encryptedPrivateKey: privateKeyBase64
+            encryptedQuantumPrivateKey: privateKeyBase64
         });
 
         await newUser.save();
@@ -54,7 +68,7 @@ export const registerUser = async (req, res) => {
                 if(err){
                     throw err;
                 }
-                res.json({token, msg: "Registration Successful. Quantum Identity Created."});
+                res.json({token, msg: "Hybrid Identity Created: Classical + Quantum Keys Generated."});
             }
         )
     }catch(err){
