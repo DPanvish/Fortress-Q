@@ -1,20 +1,52 @@
 import React, {useEffect, useState} from 'react'
 import {useNavigate} from "react-router-dom";
 import {AlertTriangle, CheckCircle} from "lucide-react";
+import axios from 'axios';
 
 const Wallet = () => {
     const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Fetch user data here...
-        // For now, Lets simulate the data structure to show the UI
-        setUser({
-            walletAddressETH: "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
-            quantumPublicKey: "Kyber-1024-Post-Quantum-Key-Sequence...",
-            balance: "12.5 FQ (Fortress Quantum)"
-        });
+        const fetchUser = async() => {
+            try{
+                const token = localStorage.getItem('token');
+
+                if(!token){
+                    navigate('/');
+                    return;
+                }
+
+                const response = await axios.get("http://localhost:5000/api/auth/me", {
+                    headers: {
+                        "x-auth-token": token
+                    }
+                });
+
+                setUser(response.data);
+            }catch(err){
+                console.error("Error fetching wallet data:", error);
+                if (err.response && err.response.status === 401) {
+                    localStorage.removeItem('token');
+                    navigate('/');
+                }
+            }finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUser();
     }, []);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-cyan-400">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mb-4"></div>
+                <p>Retrieving Quantum Identity...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen pt-24 px-6 flex flex-col items-center">
@@ -27,6 +59,9 @@ const Wallet = () => {
             <h1 className="text-4xl font-extrabold text-white mb-8">
                 Hybrid Security <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-violet-500">Wallet</span>
             </h1>
+            <p className="text-slate-400 mb-8 text-lg">
+                Identity: <span className="text-white font-mono">{user?.username}</span>
+            </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-6xl">
                 {/* Classical Card */}
@@ -44,11 +79,14 @@ const Wallet = () => {
                         <div>
                             <label className="text-slate-500 text-xs uppercase tracking-wider">Wallet Address</label>
                             <div className="mt-1 p-3 bg-slate-950 rounded border border-slate-800 font-mono text-sm text-slate-300 break-all">
-                                {user?.walletAddressETH}
+                                {user?.walletAddressETH || "Not Generated Yet."}
                             </div>
                         </div>
-                        <div className="p-4 bg-red-900/10 rounded-lg border border-red-900/30 text-red-200 text-sm">
-                            ⚠️ This address is secured by Elliptic Curve Cryptography. A 20M Qubit Quantum Computer could derive your Private Key in 8 hours.
+                        <div>
+                            <label className="text-slate-500 text-xs uppercase tracking-wider">Public Key (secp256k1)</label>
+                            <div className="mt-1 p-3 bg-slate-950 rounded border border-slate-800 font-mono text-xs text-red-300/70 break-all h-20 overflow-y-auto custom-scrollbar">
+                                {user?.ecdsaPublicKey || "Not Generated"}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -68,7 +106,7 @@ const Wallet = () => {
                         <div>
                             <label className="text-slate-500 text-xs uppercase tracking-wider">Lattice-Based Public Key</label>
                             <div className="mt-1 p-3 bg-slate-950 rounded border border-slate-800 font-mono text-sm text-cyan-300 break-all h-24 overflow-y-auto custom-scrollbar">
-                                {user?.quantumPublicKey}
+                                {user?.quantumPublicKey || "Generating..."}
                             </div>
                         </div>
                         <div className="p-4 bg-cyan-900/10 rounded-lg border border-cyan-900/30 text-cyan-200 text-sm">
