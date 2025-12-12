@@ -49,15 +49,18 @@ const Home = () => {
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <button
-                        onClick={() => navigate('/dashboard')}
+                        onClick={() => navigate('/register')}
                         className="flex items-center justify-center gap-2 px-8 py-4 text-base font-bold text-slate-900 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-xl hover:scale-105 transition-transform shadow-[0_0_20px_rgba(34,211,238,0.4)]"
                     >
                         <UploadCloud className="w-5 h-5" />
-                        Start Encrypting
+                        Get Started
                     </button>
-                    <button className="flex items-center justify-center gap-2 px-8 py-4 text-base font-medium text-white bg-slate-800/50 border border-slate-600/50 rounded-xl hover:bg-slate-800 backdrop-blur-sm transition-all">
-                        <Github className="w-5 h-5" />
-                        GitHub
+
+                    <button
+                        onClick={() => navigate('/login')}
+                        className="flex items-center justify-center gap-2 px-8 py-4 text-base font-medium text-white bg-slate-800/50 border border-slate-600/50 rounded-xl hover:bg-slate-800 backdrop-blur-sm transition-all"
+                    >
+                        Login
                     </button>
                 </div>
 

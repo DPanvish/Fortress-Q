@@ -1,10 +1,15 @@
 import React from 'react';
-import {ShieldCheck, ChevronLeft, WalletIcon} from 'lucide-react';
+import {ShieldCheck, ChevronLeft, WalletIcon, ShieldAlert} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import FileUpload from '../components/FileUpload';
 
 const Dashboard = () => {
     const navigate = useNavigate();
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        navigate('/login');
+    };
 
     return (
         <div className="min-h-screen relative overflow-hidden flex flex-col">
@@ -31,7 +36,7 @@ const Dashboard = () => {
                             My Wallet
                         </button>
                         <button
-                            onClick={() => navigate('/')}
+                            onClick={() => navigate('/login')}
                             className="text-slate-400 hover:text-white text-sm font-medium transition"
                         >
                             Logout
@@ -65,10 +70,34 @@ const Dashboard = () => {
 
                     <div>
                         <FileUpload />
+                        <div className="mt-12 w-full max-w-7xl grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {/* ATTACK SIMULATOR CARD */}
+                            <div className="col-span-1 md:col-span-3 bg-gradient-to-r from-red-900/20 to-slate-900 border border-red-500/20 rounded-2xl p-6 flex items-center justify-between relative overflow-hidden group">
+                                <div className="absolute inset-0 bg-red-500/5 group-hover:bg-red-500/10 transition-colors"></div>
+
+                                <div className="relative z-10">
+                                    <h3 className="text-xl font-bold text-white mb-2">Security Stress Test</h3>
+                                    <p className="text-slate-400 max-w-xl">
+                                        Run a simulated quantum attack against your encryption keys to verify system integrity.
+                                    </p>
+                                </div>
+
+                                <button
+                                    onClick={() => navigate('/simulator')}
+                                    className="relative z-10 px-6 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl shadow-lg shadow-red-500/20 transition-all flex items-center gap-2"
+                                >
+                                    <ShieldAlert className="w-5 h-5" />
+                                    Launch Simulator
+                                </button>
+                            </div>
+
+                        </div>
                     </div>
 
                 </div>
             </main>
+
+
         </div>
     );
 };

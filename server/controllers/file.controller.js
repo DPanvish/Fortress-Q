@@ -47,7 +47,9 @@ export const uploadFile = async (req, res) => {
 // Get user files
 export const getUserFiles = async (req, res) => {
     try{
-        const files = await File.find({user: req.user.id}).sort({uploadedAt: -1});
+        const files = await File.find({ user: req.user.id })
+            .sort({ uploadedAt: -1 })
+            .select('originalName size ipfsHash encryptedKey uploadedAt mimeType');
         res.json(files);
     }catch(err){
         console.error(err.message);

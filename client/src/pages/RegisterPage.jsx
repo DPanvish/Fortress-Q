@@ -1,7 +1,7 @@
 import React, {useState} from 'react'
 import {useNavigate} from "react-router-dom";
 import axios from "axios";
-import {Loader2} from "lucide-react";
+import {Loader2, ShieldCheck, Mail, Lock, User, Link} from "lucide-react";
 
 const RegisterPage = () => {
     const navigate = useNavigate();
