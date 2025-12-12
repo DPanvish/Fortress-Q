@@ -1,5 +1,17 @@
 import React, {useCallback, useState} from 'react'
 import { UploadCloud, File, X, CheckCircle, Shield } from 'lucide-react';
+import { MlKem1024 } from 'crystals-kyber-js';
+import CryptoJS from 'crypto-js';
+
+export const base64ToUint8Array = (base64) => {
+    const binaryString = window.atob(base64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes;
+};
 
 const FileUpload = () => {
     const [dragActive, setDragActive] = useState(false);
@@ -41,6 +53,7 @@ const FileUpload = () => {
     // Handle file uploads
     const handleFiles = (newFiles) => {
         const fileArray = Array.from(newFiles).map(file => ({
+            originalFile: file,
             name: file.name,
             size: (file.size / 1024 / 1024).toFixed(2), // MB
             type: file.type
@@ -54,18 +67,78 @@ const FileUpload = () => {
     }
 
     // Simulate file upload
-    const startUpload = () => {
+    const startUpload = async () => {
         setUploading(true);
-        let curr = 0;
-        const interval = setInterval(() => {
-            curr += 5;
-            setProgress(curr);
-            if(curr >= 100){
-                clearInterval(interval);
-                setUploading(false);
-            }
-        }, 100)
-    }
+        setProgress(5);
+
+        try {
+            // STEP 1: Get Server's Public Key
+            const keyResponse = await fetch('http://localhost:5000/api/auth/me', {
+                headers: { 'x-auth-token': localStorage.getItem('token') }
+            });
+            const userData = await keyResponse.json();
+
+            // Convert Base64 key from server to Uint8Array
+            const serverPublicKey = base64ToUint8Array(userData.quantumPublicKey);
+
+            setProgress(20);
+
+            // STEP 2: Kyber Encapsulation (Using crystals-kyber-js)
+            const sender = new MlKem1024();
+
+            // .encap() returns [ciphertext, sharedSecret]
+            const [ciphertext, sharedSecret] = await sender.encap(serverPublicKey);
+
+            // Convert Shared Secret (Uint8Array) to Hex String for AES
+            const aesKey = Array.from(sharedSecret).map(b => b.toString(16).padStart(2, '0')).join('');
+
+            console.log("🔑 Quantum Shared Secret Generated");
+            setProgress(40);
+
+            // STEP 3: Encrypt File with AES-256
+            const file = files[0].originalFile;
+            const reader = new FileReader();
+
+            reader.onload = async (e) => {
+                const fileContent = e.target.result;
+                const encryptedFile = CryptoJS.AES.encrypt(fileContent, aesKey).toString();
+
+                const encryptedBlob = new Blob([encryptedFile], { type: 'text/plain' });
+
+                setProgress(70);
+
+                // STEP 4: Upload
+                const formData = new FormData();
+                formData.append('file', encryptedBlob, file.name + ".enc");
+
+                // Send the capsule (ciphertext) so server can decapsulate
+                // We convert the Uint8Array ciphertext to a standard Array for JSON
+                formData.append('encapsulatedKey', JSON.stringify(Array.from(ciphertext)));
+
+                const uploadResponse = await fetch('http://localhost:5000/api/files/upload', {
+                    method: 'POST',
+                    headers: { 'x-auth-token': localStorage.getItem('token') },
+                    body: formData,
+                });
+
+                const result = await uploadResponse.json();
+
+                if (result.success) {
+                    setProgress(100);
+                    alert(`Quantum Secure Upload Complete!\nIPFS Hash: ${result.file.ipfsHash}`);
+                    setFiles([]);
+                }
+            };
+
+            reader.readAsDataURL(file);
+
+        } catch (error) {
+            console.error("Quantum Upload Error:", error);
+            alert("Upload failed. See console.");
+        } finally {
+            setUploading(false);
+        }
+    };
 
 
     return (
