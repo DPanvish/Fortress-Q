@@ -22,7 +22,7 @@ const fileSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    encryptionAlgo: {
+    encryptedKey: {
         type: String,
         default: "AES-256-GCM + Kyber1024"
     },
