@@ -1,42 +1,57 @@
 const hre = require("hardhat");
+const { ethers } = require("hardhat");
 
 async function main() {
-    // Get test accounts (Signers) provided by Hardhat
-    const [deployer, hacker] = await hre.ethers.getSigners();
+    const [deployer] = await hre.ethers.getSigners();
+    console.log("Deploying from (Main Account):", deployer.address);
 
-    console.log("Deploying contracts with the account:", deployer.address);
+    // SETUP THE VICTIM (Weak Key)
+    // We intentionally create a wallet with a "weak" Private Key (Entropy = 12345)
+    // This represents a key that has been weakened by Quantum Algorithms.
+    const WEAK_PRIVATE_KEY = "0x" + "12345".padStart(64, "0");
+    const weakWallet = new ethers.Wallet(WEAK_PRIVATE_KEY, hre.ethers.provider);
 
-    // Deploy Vulnerable Wallet
-    const LegacyWallet = await hre.ethers.getContractFactory("LegacyWallet");
-    const legacyWallet = await LegacyWallet.deploy();
+    console.log("\n⚠️  VICTIM SETUP:");
+    console.log("   Weak Private Key: " + WEAK_PRIVATE_KEY);
+    console.log("   Weak Address:     " + weakWallet.address);
+
+    // Fund the Weak Wallet so it can pay for gas to deploy its contract
+    const fundTx = await deployer.sendTransaction({
+        to: weakWallet.address,
+        value: ethers.parseEther("2.0") // Give it 2 ETH for gas
+    });
+    await fundTx.wait();
+
+    // DEPLOY VULNERABLE CONTRACT (Owned by Weak Wallet)
+    // We connect the factory to the weak wallet, so 'msg.sender' (owner) will be the weak address.
+    const LegacyWalletFactory = await hre.ethers.getContractFactory("LegacyWallet", weakWallet);
+    const legacyWallet = await LegacyWalletFactory.deploy();
     await legacyWallet.waitForDeployment();
-
     const legacyAddress = await legacyWallet.getAddress();
-    console.log(`🔓 LegacyWallet deployed to: ${legacyAddress}`);
 
-    // Fund It (Send some ETH to it)
+    // Fund the Contract (The "Bounty" to steal)
     const tx = await deployer.sendTransaction({
         to: legacyAddress,
-        value: hre.ethers.parseEther("10.0") // 10 ETH
+        value: ethers.parseEther("10.0")
     });
     await tx.wait();
-    console.log("💰 LegacyWallet funded with 10 ETH");
 
-    // Deploy Quantum Vault
-    const secretKey = "lattice-secret-123";
-    const quantumLock = hre.ethers.id(secretKey);
+    console.log(`🔓 LegacyWallet deployed to: ${legacyAddress}`);
+    console.log(`   Owner is: ${weakWallet.address} (Vulnerable!)`);
 
-    const QuantumVault = await hre.ethers.getContractFactory("QuantumVault");
-    const quantumVault = await QuantumVault.deploy(quantumLock);
+    // DEPLOY QUANTUM VAULT (Secure)
+    const QuantumVaultFactory = await hre.ethers.getContractFactory("QuantumVault");
+    const secret = "lattice-secret-123";
+    const lock = ethers.id(secret);
+    const quantumVault = await QuantumVaultFactory.deploy(lock);
     await quantumVault.waitForDeployment();
 
-    const quantumAddress = await quantumVault.getAddress();
-    console.log(`🛡️ QuantumVault deployed to: ${quantumAddress}`);
-    console.log(`   (Locked with secret: "${secretKey}")`);
+    console.log(`🛡️ QuantumVault deployed to: ${await quantumVault.getAddress()}`);
 
-    console.log("\n--- COPY THESE FOR FRONTEND ---");
+    console.log("\n--- COPY FOR FRONTEND ---");
     console.log("LEGACY_ADDRESS:", legacyAddress);
-    console.log("QUANTUM_ADDRESS:", quantumAddress);
+    console.log("QUANTUM_ADDRESS:", await quantumVault.getAddress());
+    console.log("VICTIM_OWNER_ADDRESS:", weakWallet.address); // Need this for the simulator
 }
 
 main().catch((error) => {
