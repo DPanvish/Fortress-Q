@@ -8,6 +8,7 @@ import RegisterPage from './pages/RegisterPage';
 import Migration from "./pages/Migration.jsx";
 import PrivateRoute from './components/PrivateRoute';
 import AttackSimulator from "./pages/AttackSimulator.jsx";
+import Simulator from "./pages/Simulator.jsx";
 
 const App = () => {
     return (
@@ -28,7 +29,7 @@ const App = () => {
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/wallet" element={<Wallet />} />
                         <Route path="/migration" element={<Migration />} />
-                        <Route path="/simulator" element={<AttackSimulator />} />
+                        <Route path="/simulator" element={<Simulator />} />
                     </Route>
                 </Routes>
 

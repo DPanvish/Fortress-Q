@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { ethers } from 'ethers';
 import { ArrowRight, ShieldCheck, AlertTriangle, Wallet, RefreshCw, Link } from 'lucide-react';
 
-const LEGACY_ADDRESS = "0x30A83F5e57Fa28a89b559850E586e08549eCbBc1";
-const QUANTUM_ADDRESS = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
+const LEGACY_ADDRESS = "0x0d514E8e275A1CdCF122da3e2AdB7b8c7C0B3Cc8";
+const QUANTUM_ADDRESS = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707";
 
 const LEGACY_ABI = [
     "function withdraw() external",
-    "function getBalance() external view returns (uint256)"
+    "function getBalance() external view returns (uint256)",
+    "function owner() external view returns (address)"
 ];
 
 const QUANTUM_ABI = [
@@ -25,6 +26,7 @@ const Migration = () => {
     const [status, setStatus] = useState("idle");
     const [logs, setLogs] = useState([]);
     const [chainId, setChainId] = useState(null);
+    const [migrationStep, setMigrationStep] = useState(0);
 
     const switchToLocalhost = async () => {
         try {
@@ -139,12 +141,14 @@ const Migration = () => {
     const startMigration = async () => {
         if (!account || !provider) return;
         setStatus("migrating");
+        setMigrationStep(1);
         setLogs([]);
         addLog("Initiating Quantum Migration Protocol...");
 
         try {
-            const signer = await provider.getSigner();
-            const userAddress = await signer.getAddress();
+            let signer = await provider.getSigner();
+            let userAddress = await signer.getAddress();
+
             addLog(`Operator: ${userAddress.slice(0, 10)}...`);
 
             // A. LEGACY WITHDRAW
@@ -152,27 +156,58 @@ const Migration = () => {
             addLog("Step 1: Extracting Funds from Legacy Contract...");
 
             const tx1 = await legacyWithSigner.withdraw();
-            addLog("Please Confirm Transaction 1 in MetaMask...");
+            addLog("Processing Withdrawal...");
             await tx1.wait();
             addLog("✅ Funds Extracted to Wallet.");
 
+            setMigrationStep(2);
+
             // B. QUANTUM DEPOSIT
             addLog("Step 2: Securing funds into Quantum Lattice...");
+
+            // Explicitly fetch nonce to prevent "Nonce too low" errors
+            const txCount = await signer.provider.getTransactionCount(userAddress);
+
             const tx2 = await signer.sendTransaction({
                 to: QUANTUM_ADDRESS,
-                value: ethers.parseEther("10.0")
+                value: ethers.parseEther("10.0"),
+                nonce: txCount
             });
-            addLog("Please Confirm Transaction 2 in MetaMask...");
+            addLog("Processing Quantum Deposit...");
             await tx2.wait();
 
             addLog("✅ Funds Locked with Post-Quantum Keys.");
             setStatus("success");
+            setMigrationStep(0);
             await refreshBalances(provider);
 
         } catch (err) {
             console.error(err);
             addLog(`❌ Error: ${err.message.slice(0, 50)}...`);
             setStatus("error");
+            setMigrationStep(0);
+        }
+    };
+
+    const resetDemo = async () => {
+        if (!provider) return;
+        try {
+            const signer = await provider.getSigner();
+            addLog("🔄 Resetting Demo State...");
+
+            // 1. Refill Legacy Wallet
+            addLog("Refilling Legacy Wallet...");
+            const txRefill = await signer.sendTransaction({
+                to: LEGACY_ADDRESS,
+                value: ethers.parseEther("10.0")
+            });
+            await txRefill.wait();
+            addLog("✅ Reset Complete. Ready to Migrate.");
+            setStatus("idle");
+            await refreshBalances(provider);
+        } catch (e) {
+            console.error(e);
+            addLog(`❌ Reset Failed: ${e.message}`);
         }
     };
 
@@ -224,14 +259,30 @@ const Migration = () => {
                                     <p className="text-xs text-red-400">Vulnerable to Shor's Algo</p>
                                 </div>
                             </div>
-                            <span className="text-2xl font-mono font-bold text-white">{legacyBalance} ETH</span>
+                            <div className="text-right">
+                                <div className="text-2xl font-mono font-bold text-white">{legacyBalance} ETH</div>
+                                {legacyBalance === "0.0" && (
+                                    <button onClick={resetDemo} className="text-xs bg-slate-800 hover:bg-slate-700 text-cyan-400 px-2 py-1 rounded border border-slate-700 mt-1">
+                                        🔄 Reset Demo
+                                    </button>
+                                )}
+                            </div>
                         </div>
                         <div className="text-xs font-mono text-slate-500 break-all">{LEGACY_ADDRESS}</div>
                     </div>
 
                     {/* ARROW */}
-                    <div className="flex justify-center text-slate-600">
-                        <ArrowRight className={`w-8 h-8 ${status === 'migrating' ? 'text-cyan-400 animate-pulse' : ''} rotate-90 lg:rotate-0`} />
+                    <div className="flex flex-col items-center justify-center text-slate-600 gap-2 h-16">
+                        {status === 'migrating' ? (
+                            <>
+                                <RefreshCw className="w-8 h-8 text-cyan-400 animate-spin" />
+                                <span className="text-xs font-mono text-cyan-400 animate-pulse font-bold">
+                                    {migrationStep === 1 ? "EXTRACTING..." : "SECURING..."}
+                                </span>
+                            </>
+                        ) : (
+                            <ArrowRight className={`w-8 h-8 ${status === 'success' ? 'text-green-500' : ''} rotate-90 lg:rotate-0`} />
+                        )}
                     </div>
 
                     {/* Quantum Card */}

@@ -1,8 +1,10 @@
-import React, {useState} from 'react'
+import React, {useEffect, useState} from 'react'
 import {useNavigate} from "react-router-dom";
+import { ShieldAlert, Terminal, Zap, Unlock, RefreshCw } from 'lucide-react';
+import { ethers } from 'ethers';
 
 const VICTIM_OWNER = "0xae0478140036d14e93A7B7482512e1d91745B650";
-const LEGACY_CONTRACT = "0x30A83F5e57Fa28a89b559850E586e08549eCbBc1";
+const LEGACY_CONTRACT = "0x0d514E8e275A1CdCF122da3e2AdB7b8c7C0B3Cc8";
 
 const LEGACY_ABI = ["function withdraw() external"];
 
@@ -13,46 +15,40 @@ const Simulator = () => {
     const [status, setStatus] = useState("idle");
     const [foundKey, setFoundKey] = useState(null);
     const [progress, setProgress] = useState(0);
+    const [victimBalance, setVictimBalance] = useState("0.0");
 
     const addLog = (msg) => {
         setLogs(prev => [msg, ...prev].slice(0, 10));
     }
 
     // The Real Attack Logic
-    const launchAttack = async() => {
+    const launchAttack = async () => {
         setStatus("cracking");
         setLogs([]);
         addLog("🚀 Initializing Quantum Shor's Simulation...");
 
-        // We start searching for the private key from 0 upwards.
-        // In a real attack, this search space is 2^256.
-        // Here, we simulate the 'reduced' space found by Shor's Algo.
-
         let guess = 0n;
         const maxGuess = 100000n;
-        const startTime = Date.now();
+        const startTime = Date.now(); // <--- Ensure this is here
 
-        const crackLoop = setInterval(async() => {
-            for(let i = 0; i < 500; i++){
+        const crackLoop = setInterval(async () => {
+            for (let i = 0; i < 500; i++) {
                 guess++;
-
                 const currentKey = "0x" + guess.toString(16).padStart(64, '0');
-
                 const wallet = new ethers.Wallet(currentKey);
 
-                if(wallet.address.toLowerCase() === VICTIM_OWNER.toLowerCase()){
+                if (wallet.address.toLowerCase() === VICTIM_OWNER.toLowerCase()) {
                     clearInterval(crackLoop);
-                    finishAttack(currentKey);
+                    // PASS startTime to the next function here:
+                    finishAttack(currentKey, startTime);
                     return;
                 }
             }
 
             setProgress(Number(guess));
-            if(guess % 1000n === 0n){
-                addLog(`Trying Key: 0x...${guess.toString(16)}`);
-            }
+            if (guess % 1000n === 0n) addLog(`Trying Key: 0x...${guess.toString(16)}`);
 
-            if(guess > maxGuess){
+            if (guess > maxGuess) {
                 clearInterval(crackLoop);
                 setStatus("failed");
                 addLog("❌ Attack Timed Out. Key not in range.");
@@ -60,7 +56,7 @@ const Simulator = () => {
         }, 10);
     };
 
-    const finishAttack = async (privateKey) => {
+    const finishAttack = async (privateKey, startTime) => {
         const timeTaken = (Date.now() - startTime) / 1000;
         addLog(`✅ KEY FOUND in ${timeTaken}s!`);
         addLog(`🔑 Private Key: ${privateKey}`);
@@ -82,6 +78,8 @@ const Simulator = () => {
             addLog(`Transaction Sent: ${tx.hash}`);
             await tx.wait();
 
+            await updateVictimBalance();
+
             addLog("💰 FUNDS STOLEN SUCCESSFULLY.");
             setStatus("success");
         } catch (err) {
@@ -90,6 +88,38 @@ const Simulator = () => {
             setStatus("success"); // Still a success that we found the key
         }
     };
+
+    const updateVictimBalance = async () => {
+        const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
+        const bal = await provider.getBalance(VICTIM_OWNER);
+        setVictimBalance(ethers.formatEther(bal));
+    };
+
+    useEffect(() => {
+        const prepareVictim = async () => {
+            await updateVictimBalance();
+
+            // Ensure Victim has Gas (since it's not a pre-funded Hardhat account)
+            const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
+            const balance = await provider.getBalance(VICTIM_OWNER);
+
+            if (balance < ethers.parseEther("0.01")) {
+                try {
+                    const signer = await provider.getSigner(); // Uses Account #0
+                    const tx = await signer.sendTransaction({
+                        to: VICTIM_OWNER,
+                        value: ethers.parseEther("1.0")
+                    });
+                    await tx.wait();
+                    addLog("⛽ Victim Account Funded (for Gas)");
+                    await updateVictimBalance();
+                } catch (e) {
+                    console.error("Auto-funding failed:", e);
+                }
+            }
+        };
+        prepareVictim();
+    }, []);
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200 font-sans p-8 flex flex-col items-center">
@@ -111,6 +141,7 @@ const Simulator = () => {
                     <div>
                         <h3 className="text-sm font-bold text-slate-500 uppercase">Target Owner (Victim)</h3>
                         <p className="font-mono text-cyan-400 break-all">{VICTIM_OWNER}</p>
+                        <p className="text-sm text-green-400 mt-1">Wallet Balance: {victimBalance} ETH</p>
                     </div>
                     <div className="text-right">
                         <h3 className="text-sm font-bold text-slate-500 uppercase">Target Contract</h3>
