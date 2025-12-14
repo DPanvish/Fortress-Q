@@ -74,24 +74,17 @@ const Dashboard = () => {
             const privateKeyBytes = base64ToUint8Array(user.encryptedQuantumPrivateKey);
             if (privateKeyBytes.length === 0) throw new Error("Invalid Private Key");
 
-            // Handle various formats for the key (String, Array, MongoDB Buffer)
+            // Handle various formats for the key
             let keyData = file.encryptedKey;
-
             if (typeof keyData === 'string') {
                 try {
                     const parsed = JSON.parse(keyData);
                     keyData = parsed;
-                } catch (e) {
-                    // Keep as string if parse fails
-                }
+                } catch (e) { }
             }
-
-            // Handle MongoDB Buffer format { type: 'Buffer', data: [...] }
             if (keyData && typeof keyData === 'object' && keyData.type === 'Buffer' && Array.isArray(keyData.data)) {
                 keyData = keyData.data;
             }
-
-            // Handle Object-map format { "0": 123, "1": 45... } (JSON stringified TypedArray)
             if (keyData && typeof keyData === 'object' && !Array.isArray(keyData) && !keyData.length) {
                 keyData = Object.values(keyData);
             }
@@ -102,7 +95,6 @@ const Dashboard = () => {
             if (capsuleBytes.length === 0) throw new Error("Encrypted Key (Capsule) is empty");
 
             const recipient = new MlKem1024();
-            console.log(`Decapping: Capsule ${capsuleBytes.length} bytes, PrivKey ${privateKeyBytes.length} bytes`);
             const decryptedSecret = await recipient.decap(capsuleBytes, privateKeyBytes);
 
             if (!decryptedSecret) throw new Error("Quantum decapsulation failed");
@@ -113,27 +105,21 @@ const Dashboard = () => {
 
             // C. DECRYPT CONTENT (AES-256)
             console.log("3. Decrypting...");
-            // Use the hex string directly as the passphrase to handle Salted__ format automatically
             const bytes = CryptoJS.AES.decrypt(encryptedContent.trim(), aesKeyHex);
-
-            // Convert to UTF8 String (This recovers the 'data:...' string)
             const decryptedDataURI = bytes.toString(CryptoJS.enc.Utf8);
 
-            // Validation: Must start with 'data:'
             if (!decryptedDataURI || !decryptedDataURI.startsWith("data:")) {
                 throw new Error("Decryption failed. (Key mismatch or corrupted file)");
             }
 
             console.log("✅ Decryption Successful! Reconstructing Blob...");
 
-            // D. CONVERT TO BLOB (Modern Method)
-            // We use fetch() to handle the DataURI -> Blob conversion cleanly
+            // D. CONVERT TO BLOB
             const blob = await (await fetch(decryptedDataURI)).blob();
 
             // E. TRIGGER DOWNLOAD
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
-            // Remove the .enc extension from the original filename for the recovered file
             const finalFileName = file.originalName.endsWith('.enc')
                 ? file.originalName.slice(0, -4)
                 : file.originalName;
@@ -142,7 +128,6 @@ const Dashboard = () => {
             document.body.appendChild(link);
             link.click();
 
-            // Cleanup
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
 
@@ -171,8 +156,8 @@ const Dashboard = () => {
                             <ShieldCheck className="w-6 h-6 text-white" />
                         </div>
                         <span className="text-xl md:text-2xl font-bold text-white tracking-wide">
-              Fortress <span className="text-cyan-400">Q</span>
-            </span>
+                            Fortress <span className="text-cyan-400">Q</span>
+                        </span>
                     </div>
 
                     <div className="flex items-center gap-4">
@@ -189,8 +174,29 @@ const Dashboard = () => {
             {/* Main Content */}
             <main className="flex-grow p-6 relative z-10 max-w-7xl mx-auto w-full space-y-12">
 
-                {/* Header Section */}
+                {/* Header Section with Identity Badge */}
                 <div className="text-center space-y-4 pt-8">
+
+                    {/* Welcome Message */}
+                    {user && <h2 className="text-xl text-cyan-400 font-mono">Welcome, {user.username}</h2>}
+
+                    {/* QUANTUM BADGE (Only shows if Seed exists) */}
+                    {user?.quantumSeed && (
+                        <div className="flex items-center justify-center">
+                            <div className="flex items-center gap-3 px-5 py-2 bg-violet-900/40 border border-violet-500/50 rounded-full shadow-[0_0_15px_rgba(139,92,246,0.3)] transition-all hover:scale-105">
+                                <span className="text-violet-400 animate-pulse text-xl">⚛️</span>
+                                <div className="flex flex-col text-left">
+                                    <span className="text-[10px] text-violet-200 font-bold uppercase tracking-wider">
+                                        Identity Secured by IBM Qiskit
+                                    </span>
+                                    <span className="text-[9px] text-violet-400 font-mono truncate w-32">
+                                        Seed: {user.quantumSeed.substring(0, 12)}...
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <h1 className="text-4xl md:text-5xl font-extrabold text-white">
                         Secure <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-violet-500">Quantum Vault</span>
                     </h1>
