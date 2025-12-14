@@ -41,6 +41,11 @@ const userSchema = new mongoose.Schema({
         required: true,
         default: "pending"
     },
+    // The Qiskit Entropy Field
+    quantumSeed: {
+        type: String,
+        default: null
+    },
     createdAt: {
         type: Date,
         default: Date.now

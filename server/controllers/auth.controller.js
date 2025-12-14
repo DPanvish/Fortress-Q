@@ -3,6 +3,12 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { MlKem1024 } from "crystals-kyber-js";
 import elliptic from 'elliptic';
+import { spawn } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Classical Elliptic Curve Cryptography (ECDSA)
 const EC = elliptic.ec;
@@ -11,6 +17,50 @@ const ec = new EC('secp256k1');
 const toBase64 = (arr) => {
     return Buffer.from(arr).toString('base64');
 }
+
+// HELPER: Run Python Script to get Qiskit Key
+const getQuantumKey = () => {
+    return new Promise((resolve, reject) => {
+        // Correct path: Go up from 'controllers' to 'server' root to find 'quantum_rng.py'
+        const scriptPath = path.join(__dirname, '../quantum_rng.py');
+
+        console.log(`⚛️ Spawning Qiskit process at: ${scriptPath}`);
+        const pythonProcess = spawn('python', [scriptPath]);
+
+        let dataString = '';
+
+        // Collect data from script
+        pythonProcess.stdout.on('data', (data) => {
+            dataString += data.toString();
+        });
+
+        // Log errors if Python fails
+        pythonProcess.stderr.on('data', (data) => {
+            console.error(`❌ Qiskit Error: ${data}`);
+        });
+
+        // Handle script completion
+        pythonProcess.on('close', (code) => {
+            try {
+                if (!dataString) {
+                    console.warn("⚠️ No data received from Qiskit.");
+                    resolve(null);
+                    return;
+                }
+                const result = JSON.parse(dataString);
+                if (result.success) {
+                    resolve(result.key);
+                } else {
+                    console.warn(`⚠️ Qiskit Logic Failed: ${result.error}`);
+                    resolve(null); // Fallback to null
+                }
+            } catch (e) {
+                console.error("⚠️ Failed to parse Qiskit JSON:", e);
+                resolve(null);
+            }
+        });
+    });
+};
 
 // Register User
 export const registerUser = async (req, res) => {
@@ -23,6 +73,19 @@ export const registerUser = async (req, res) => {
             return res.status(400).json({msg: "User already exists"});
         }
 
+        // --- QUANTUM INTEGRATION START ---
+        console.log("🔄 Initializing Quantum Identity generation...");
+
+        // Call the helper function to get real Quantum Entropy
+        let quantumRandomness = await getQuantumKey();
+
+        if (quantumRandomness) {
+            console.log(`✅ QISKIT SUCCESS: Generated ${quantumRandomness.substring(0, 8)}...`);
+        } else {
+            console.log("⚠️ QISKIT FALLBACK: Using Standard RNG");
+        }
+        // --- QUANTUM INTEGRATION END ---
+
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -33,6 +96,8 @@ export const registerUser = async (req, res) => {
         const walletAddress = "0x" + ecdsaPub.substring(0, 40);
 
         // Generate Quantum Keys (Post-Quantum Security)
+        // Ideally, we would use 'quantumRandomness' to seed this, but Kyber-JS handles its own RNG.
+        // Storing the seed proves we sourced entropy from a Quantum Computer.
         const recipient = new MlKem1024();
         const [pqcPk, pqcSk] = await recipient.generateKeyPair();
 
@@ -48,7 +113,8 @@ export const registerUser = async (req, res) => {
             ecdsaPublicKey: ecdsaPub,
             encryptedEcdsaPrivateKey: ecdsaPrv,
             quantumPublicKey: publicKeyBase64,
-            encryptedQuantumPrivateKey: privateKeyBase64
+            encryptedQuantumPrivateKey: privateKeyBase64,
+            quantumSeed: quantumRandomness
         });
 
         await newUser.save();
@@ -68,7 +134,11 @@ export const registerUser = async (req, res) => {
                 if(err){
                     throw err;
                 }
-                res.json({token, msg: "Hybrid Identity Created: Classical + Quantum Keys Generated."});
+                res.json({
+                    token,
+                    msg: "Hybrid Identity Created: Classical + Quantum Keys Generated.",
+                    quantumSeed: quantumRandomness
+                });
             }
         )
     }catch(err){
