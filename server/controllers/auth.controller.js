@@ -200,3 +200,36 @@ export const getUserProfile = async (req, res) => {
         res.status(500).send("Server Error");
     }
 }
+
+// Helper to run the script with optional attack flag
+const runBB84 = (isAttack) => {
+    return new Promise((resolve, reject) => {
+        const scriptPath = path.join(__dirname, '../quantum_bb84.py');
+        const args = [scriptPath];
+        if(isAttack){
+            args.push("--attack");
+        }
+
+        const pythonProcess = spawn("python", args);
+        let dataString = "";
+
+        pythonProcess.stdout.on('data', (data) => dataString += data.toString());
+        pythonProcess.on('close', () => {
+            try {
+                const res = JSON.parse(dataString);
+                resolve(res);
+            } catch (e) { resolve(null); }
+        });
+    })
+}
+
+export const negotiateQuantumKey = async (req, res) => {
+    const {simulateAttack} = req.body;
+    const result = await runBB84(simulateAttack);
+
+    if(result && result.success){
+        res.json(result.data);
+    }else{
+        res.status(500).json({msg: "Quantum Simulation Failed"});
+    }
+}
