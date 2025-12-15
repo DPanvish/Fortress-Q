@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { ethers } from 'ethers';
 import { ArrowRight, ShieldCheck, AlertTriangle, Wallet, RefreshCw, Link } from 'lucide-react';
 
-const LEGACY_ADDRESS = "0x0d514E8e275A1CdCF122da3e2AdB7b8c7C0B3Cc8";
-const QUANTUM_ADDRESS = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707";
+const LEGACY_ADDRESS = "0x30A83F5e57Fa28a89b559850E586e08549eCbBc1";
+const QUANTUM_ADDRESS = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
 
 const LEGACY_ABI = [
     "function withdraw() external",

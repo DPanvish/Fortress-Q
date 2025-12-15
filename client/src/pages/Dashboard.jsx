@@ -7,6 +7,7 @@ import CryptoJS from 'crypto-js';
 
 import FileUpload from '../components/FileUpload';
 import FileList from '../components/FileList';
+import QuantumMonitor from "../components/QuantumMonitor.jsx";
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -204,6 +205,10 @@ const Dashboard = () => {
                         Files are encrypted client-side. The server never sees your raw data.
                         Only your private Kyber key can unlock these assets.
                     </p>
+                </div>
+
+                <div className="max-w-4xl mx-auto w-full mb-8">
+                    <QuantumMonitor />
                 </div>
 
                 {/* Upload Section */}

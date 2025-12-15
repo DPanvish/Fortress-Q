@@ -4,7 +4,7 @@ import { ShieldAlert, Terminal, Zap, Unlock, RefreshCw } from 'lucide-react';
 import { ethers } from 'ethers';
 
 const VICTIM_OWNER = "0xae0478140036d14e93A7B7482512e1d91745B650";
-const LEGACY_CONTRACT = "0x0d514E8e275A1CdCF122da3e2AdB7b8c7C0B3Cc8";
+const LEGACY_CONTRACT = "0x30A83F5e57Fa28a89b559850E586e08549eCbBc1";
 
 const LEGACY_ABI = ["function withdraw() external"];
 

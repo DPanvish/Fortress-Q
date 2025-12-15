@@ -210,15 +210,21 @@ const runBB84 = (isAttack) => {
             args.push("--attack");
         }
 
+        console.log(`⚛️ Starting BB84 Simulation (Attack: ${isAttack})...`);
+
         const pythonProcess = spawn("python", args);
         let dataString = "";
 
         pythonProcess.stdout.on('data', (data) => dataString += data.toString());
+        pythonProcess.stderr.on('data', (data) => console.error(`Qiskit Error: ${data}`));
         pythonProcess.on('close', () => {
             try {
                 const res = JSON.parse(dataString);
                 resolve(res);
-            } catch (e) { resolve(null); }
+            } catch (e) {
+                console.error("Failed to parse BB84 output", e);
+                resolve(null);
+            }
         });
     })
 }
