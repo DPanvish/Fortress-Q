@@ -8,6 +8,7 @@ import CryptoJS from 'crypto-js';
 import FileUpload from '../components/FileUpload';
 import FileList from '../components/FileList';
 import QuantumMonitor from "../components/QuantumMonitor.jsx";
+import QuantumMiner from "../components/QuantumMiner.jsx";
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -209,6 +210,7 @@ const Dashboard = () => {
 
                 <div className="max-w-4xl mx-auto w-full mb-8">
                     <QuantumMonitor />
+                    <QuantumMiner />
                 </div>
 
                 {/* Upload Section */}
