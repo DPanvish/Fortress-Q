@@ -221,7 +221,7 @@ const runBB84 = (isAttack) => {
             try {
                 const res = JSON.parse(dataString);
                 resolve(res);
-            } catch (e) {
+            }catch (e) {
                 console.error("Failed to parse BB84 output", e);
                 resolve(null);
             }
@@ -239,3 +239,35 @@ export const negotiateQuantumKey = async (req, res) => {
         res.status(500).json({msg: "Quantum Simulation Failed"});
     }
 }
+
+// Helper for Mining
+const runMiningScript = () => {
+    return new Promise((resolve) => {
+        const scriptPath = path.join(__dirname, '../quantum_mining.py');
+        const pythonProcess = spawn('python', [scriptPath]);
+
+        let dataString = '';
+        pythonProcess.stdout.on('data', (d) => dataString += d.toString());
+        pythonProcess.on('close', () => {
+            try {
+                resolve(JSON.parse(dataString));
+            }catch (err) {
+                resolve(null);
+            }
+        });
+    });
+};
+
+export const mineQuantumBlock = async (req, res) => {
+    try {
+        const result = await runMiningScript();
+        if (result && result.success) {
+            res.json(result.data);
+        }else {
+            res.status(500).json({ msg: "Mining Simulation Failed" });
+        }
+    }catch (e) {
+        console.error(e);
+        res.status(500).send("Server Error");
+    }
+};
