@@ -271,3 +271,30 @@ export const mineQuantumBlock = async (req, res) => {
         res.status(500).send("Server Error");
     }
 };
+
+// Helper for Signature
+const runSignatureScript = (msg) => {
+    return new Promise((resolve) => {
+        const scriptPath = path.join(__dirname, '../lattice_sign.py');
+        const pythonProcess = spawn('python', [scriptPath, msg]);
+        let dataString = '';
+        pythonProcess.stdout.on('data', (d) => dataString += d.toString());
+        pythonProcess.on('close', () => {
+            try {
+                resolve(JSON.parse(dataString));
+            }catch(e){
+                resolve(null);
+            }
+        });
+    });
+};
+
+export const signMigration = async (req, res) => {
+    const { migrationId } = req.body;
+    const result = await runSignatureScript(`Migration_${migrationId}`);
+    if (result && result.success) {
+        res.json(result.data);
+    } else {
+        res.status(500).json({ msg: "Signing Failed" });
+    }
+};
