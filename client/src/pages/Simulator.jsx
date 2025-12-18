@@ -1,191 +1,192 @@
-import React, {useEffect, useState} from 'react'
-import {useNavigate} from "react-router-dom";
-import { ShieldAlert, Terminal, Zap, Unlock, RefreshCw } from 'lucide-react';
-import { ethers } from 'ethers';
-
-const VICTIM_OWNER = "0xae0478140036d14e93A7B7482512e1d91745B650";
-const LEGACY_CONTRACT = "0x30A83F5e57Fa28a89b559850E586e08549eCbBc1";
-
-const LEGACY_ABI = ["function withdraw() external"];
-
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { ShieldAlert, Zap, Lock, Unlock, Terminal, Cpu, Clock } from 'lucide-react';
 
 const Simulator = () => {
     const navigate = useNavigate();
+    const [running, setRunning] = useState(false);
+    const [result, setResult] = useState(null);
     const [logs, setLogs] = useState([]);
-    const [status, setStatus] = useState("idle");
-    const [foundKey, setFoundKey] = useState(null);
-    const [progress, setProgress] = useState(0);
-    const [victimBalance, setVictimBalance] = useState("0.0");
 
-    const addLog = (msg) => {
-        setLogs(prev => [msg, ...prev].slice(0, 10));
-    }
+    // Thesis Data Points
+    const CLASSICAL_TIME = "300 Trillion Years";
+    const QUANTUM_TIME = "~10 Seconds";
 
-    // The Real Attack Logic
-    const launchAttack = async () => {
-        setStatus("cracking");
+    const addLog = (msg) => setLogs(prev => [...prev, `> ${msg}`]);
+
+    const startSimulation = async () => {
+        setRunning(true);
         setLogs([]);
-        addLog("🚀 Initializing Quantum Shor's Simulation...");
+        setResult(null);
 
-        let guess = 0n;
-        const maxGuess = 100000n;
-        const startTime = Date.now(); // <--- Ensure this is here
+        // CLASSICAL PHASE (The Struggle)
+        addLog("Initializing Classical Brute Force Attack...");
+        await new Promise(r => setTimeout(r, 600));
+        addLog("Target: 2048-bit RSA Key (N=15 for demo)");
 
-        const crackLoop = setInterval(async () => {
-            for (let i = 0; i < 500; i++) {
-                guess++;
-                const currentKey = "0x" + guess.toString(16).padStart(64, '0');
-                const wallet = new ethers.Wallet(currentKey);
+        addLog("Attempting General Number Field Sieve (GNFS)...");
+        await new Promise(r => setTimeout(r, 500));
+        addLog("❌ Iteration 10^9 failed. Prime factors unknown.");
 
-                if (wallet.address.toLowerCase() === VICTIM_OWNER.toLowerCase()) {
-                    clearInterval(crackLoop);
-                    // PASS startTime to the next function here:
-                    finishAttack(currentKey, startTime);
-                    return;
-                }
-            }
+        addLog(`⚠ ESTIMATED TIME REMAINING: ${CLASSICAL_TIME}`);
+        await new Promise(r => setTimeout(r, 800));
 
-            setProgress(Number(guess));
-            if (guess % 1000n === 0n) addLog(`Trying Key: 0x...${guess.toString(16)}`);
-
-            if (guess > maxGuess) {
-                clearInterval(crackLoop);
-                setStatus("failed");
-                addLog("❌ Attack Timed Out. Key not in range.");
-            }
-        }, 10);
-    };
-
-    const finishAttack = async (privateKey, startTime) => {
-        const timeTaken = (Date.now() - startTime) / 1000;
-        addLog(`✅ KEY FOUND in ${timeTaken}s!`);
-        addLog(`🔑 Private Key: ${privateKey}`);
-        setFoundKey(privateKey);
-        setStatus("draining");
+        // QUANTUM PHASE (The Solution)
+        addLog("🚀 ACTIVATING QUANTUM CIRCUIT (QISKIT)...");
+        addLog("Initializing Superposition & Oracle...");
 
         try {
-            addLog("💀 Stealing Funds with Recovered Key...");
+            const token = localStorage.getItem('token');
 
-            // 1. Connect to Localhost using the STOLEN KEY
-            const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
-            const stolenWallet = new ethers.Wallet(privateKey, provider);
+            // Call the real Python script
+            const res = await axios.post('http://localhost:5000/api/auth/attack', {}, {
+                headers: { 'x-auth-token': token }
+            });
 
-            // 2. Connect to the Victim's Contract
-            const contract = new ethers.Contract(LEGACY_CONTRACT, LEGACY_ABI, stolenWallet);
+            if (res.data) {
+                setResult(res.data);
+                addLog(`✅ QUANTUM CIRCUIT COMPLETE`);
+                addLog(`Period Found: 4`);
+                addLog(`Factors Derived: ${res.data.guessed_factors.join(", ")}`);
 
-            // 3. CALL WITHDRAW (The Theft)
-            const tx = await contract.withdraw();
-            addLog(`Transaction Sent: ${tx.hash}`);
-            await tx.wait();
-
-            await updateVictimBalance();
-
-            addLog("💰 FUNDS STOLEN SUCCESSFULLY.");
-            setStatus("success");
+                // THE VISUAL BRIDGE:
+                // We pretend that finding factors 3 & 5 reveals the key
+                addLog(`Derived Private Key: 0x0000...000F (Factors 3*5)`);
+                addLog(`Target N=${res.data.target_number} BROKEN.`);
+            }
         } catch (err) {
             console.error(err);
-            addLog(`❌ Error Stealing: ${err.message}`);
-            setStatus("success"); // Still a success that we found the key
+            addLog("❌ Connection Error: Ensure Backend is running Qiskit.");
+        } finally {
+            setRunning(false);
         }
     };
-
-    const updateVictimBalance = async () => {
-        const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
-        const bal = await provider.getBalance(VICTIM_OWNER);
-        setVictimBalance(ethers.formatEther(bal));
-    };
-
-    useEffect(() => {
-        const prepareVictim = async () => {
-            await updateVictimBalance();
-
-            // Ensure Victim has Gas (since it's not a pre-funded Hardhat account)
-            const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
-            const balance = await provider.getBalance(VICTIM_OWNER);
-
-            if (balance < ethers.parseEther("0.01")) {
-                try {
-                    const signer = await provider.getSigner(); // Uses Account #0
-                    const tx = await signer.sendTransaction({
-                        to: VICTIM_OWNER,
-                        value: ethers.parseEther("1.0")
-                    });
-                    await tx.wait();
-                    addLog("⛽ Victim Account Funded (for Gas)");
-                    await updateVictimBalance();
-                } catch (e) {
-                    console.error("Auto-funding failed:", e);
-                }
-            }
-        };
-        prepareVictim();
-    }, []);
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200 font-sans p-8 flex flex-col items-center">
             <button onClick={() => navigate('/dashboard')} className="self-start mb-8 text-slate-400 hover:text-cyan-400">← Back</button>
 
-            <div className="max-w-4xl w-full space-y-8">
-                <div className="text-center">
-                    <h1 className="text-4xl font-bold text-red-500 mb-2 flex justify-center items-center gap-3">
-                        <ShieldAlert size={40} /> Quantum Attack Simulator
-                    </h1>
-                    <p className="text-slate-400">
-                        Demonstrating <strong>Key Recovery Attack</strong>.
-                        Simulating Shor's Algorithm by searching a reduced entropy keyspace.
-                    </p>
-                </div>
+            <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-12">
 
-                {/* Target Info */}
-                <div className="bg-slate-900 border border-red-900/50 rounded-xl p-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                {/* LEFT COLUMN: THE THREAT MODEL */}
+                <div className="space-y-8">
                     <div>
-                        <h3 className="text-sm font-bold text-slate-500 uppercase">Target Owner (Victim)</h3>
-                        <p className="font-mono text-cyan-400 break-all">{VICTIM_OWNER}</p>
-                        <p className="text-sm text-green-400 mt-1">Wallet Balance: {victimBalance} ETH</p>
+                        <h1 className="text-4xl font-bold text-white mb-2">Cryptographic <span className="text-red-500">Attack Vector</span></h1>
+                        <p className="text-slate-400 leading-relaxed">
+                            Current blockchain security relies on the difficulty of factoring large numbers (RSA) or discrete logarithms (ECC).
+                            <strong> Shor's Algorithm</strong> utilizes quantum superposition to solve these problems exponentially faster.
+                        </p>
                     </div>
-                    <div className="text-right">
-                        <h3 className="text-sm font-bold text-slate-500 uppercase">Target Contract</h3>
-                        <p className="font-mono text-white break-all">{LEGACY_CONTRACT}</p>
+
+                    {/* Comparison Cards */}
+                    <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl space-y-4 shadow-xl">
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="bg-slate-800 p-3 rounded-full"><Lock className="text-slate-400" /></div>
+                            <div>
+                                <h3 className="font-bold text-white">Target Encryption</h3>
+                                <p className="text-xs text-slate-500">Simulating N=15 (RSA Concept)</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            {/* Classical */}
+                            <div className="bg-black/30 p-4 rounded-xl border border-slate-800">
+                                <div className="flex items-center gap-2 mb-2 text-slate-500">
+                                    <Clock size={16} /> <span className="text-xs font-bold uppercase">Classical CPU</span>
+                                </div>
+                                <span className="text-slate-300 font-mono font-bold text-lg">{CLASSICAL_TIME}</span>
+                            </div>
+
+                            {/* Quantum */}
+                            <div className="bg-red-900/10 p-4 rounded-xl border border-red-500/30 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-20 h-20 bg-red-500/20 blur-xl rounded-full"></div>
+                                <div className="flex items-center gap-2 mb-2 text-red-400">
+                                    <Cpu size={16} /> <span className="text-xs font-bold uppercase">Quantum QPU</span>
+                                </div>
+                                <span className="text-red-400 font-mono font-bold text-lg animate-pulse">{QUANTUM_TIME}</span>
+                            </div>
+                        </div>
                     </div>
+
+                    <button
+                        onClick={startSimulation}
+                        disabled={running}
+                        className={`w-full py-4 font-bold rounded-xl shadow-[0_0_20px_rgba(239,68,68,0.4)] flex items-center justify-center gap-3 transition-all
+                        ${running ? 'bg-slate-800 text-slate-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-500 text-white hover:scale-105'}`}
+                    >
+                        {running ? <Zap className="animate-spin" /> : <ShieldAlert />}
+                        {running ? "Running Qiskit Circuit..." : "Launch Shor's Algorithm"}
+                    </button>
                 </div>
 
-                {/* Action Area */}
-                <div className="flex justify-center">
-                    {status === 'idle' && (
-                        <button onClick={launchAttack} className="bg-red-600 hover:bg-red-500 text-white text-xl font-bold py-4 px-12 rounded-full shadow-[0_0_40px_rgba(220,38,38,0.5)] transition-all transform hover:scale-105 flex items-center gap-3">
-                            <Zap /> LAUNCH ATTACK
-                        </button>
-                    )}
-                    {status === 'cracking' && (
-                        <div className="text-center space-y-2">
-                            <RefreshCw className="animate-spin w-12 h-12 text-red-500 mx-auto" />
-                            <p className="text-red-400 font-mono">Brute Forcing ECDSA Key...</p>
-                            <p className="text-xs text-slate-500">Keys Checked: {progress}</p>
-                        </div>
-                    )}
-                    {status === 'success' && (
-                        <div className="bg-green-900/20 border border-green-500/50 p-6 rounded-xl text-center">
-                            <Unlock className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                            <h2 className="text-2xl font-bold text-green-400">SYSTEM COMPROMISED</h2>
-                            <p className="text-green-200">Private Key Recovered & Funds Drained</p>
-                        </div>
-                    )}
-                </div>
+                {/* RIGHT COLUMN: TERMINAL & RESULTS */}
+                <div className="space-y-6 flex flex-col">
 
-                {/* Terminal Output */}
-                <div className="bg-black border border-slate-800 rounded-lg p-4 font-mono text-sm h-64 overflow-y-auto shadow-inner custom-scrollbar">
-                    <div className="flex items-center gap-2 mb-2 border-b border-slate-800 pb-2">
-                        <Terminal size={14} className="text-slate-500"/>
-                        <span className="text-slate-500">root@attacker:~/exploit# ./run_shors.py</span>
-                    </div>
-                    {logs.map((log, i) => (
-                        <div key={i} className={`${log.includes('✅') ? 'text-green-400 font-bold' : log.includes('❌') ? 'text-red-500' : 'text-slate-300'}`}>
-                            {log}
+                    {/* Terminal Window */}
+                    <div className="bg-black/90 rounded-xl border border-red-900/30 font-mono text-sm h-[450px] flex flex-col shadow-2xl relative overflow-hidden">
+                        {/* Terminal Header */}
+                        <div className="flex items-center gap-2 px-4 py-2 border-b border-white/10 bg-white/5">
+                            <Terminal size={14} className="text-red-400" />
+                            <span className="text-red-400/80 text-xs font-bold">ROOT_ACCESS // QISKIT_RUNTIME</span>
                         </div>
-                    ))}
+
+                        {/* Logs */}
+                        <div className="p-4 overflow-y-auto flex-grow space-y-2 custom-scrollbar">
+                            {logs.length === 0 && (
+                                <div className="h-full flex flex-col items-center justify-center text-slate-700 gap-2 opacity-50">
+                                    <ShieldAlert size={48} />
+                                    <span>Waiting for Attack Vector...</span>
+                                </div>
+                            )}
+                            {logs.map((log, i) => (
+                                <p key={i} className={`
+                                    ${log.includes("BROKEN") ? "text-red-500 font-bold bg-red-900/10 p-1" : ""}
+                                    ${log.includes("CLASSICAL") ? "text-yellow-500" : ""}
+                                    ${log.includes("QUANTUM") ? "text-cyan-400" : ""}
+                                    ${!log.includes("BROKEN") && !log.includes("CLASSICAL") && !log.includes("QUANTUM") ? "text-slate-300" : ""}
+                                `}>
+                                    {log}
+                                </p>
+                            ))}
+                            {/* Dummy scroll anchor */}
+                            <div className="h-2"></div>
+                        </div>
+                    </div>
+
+                    {/* Result Card (Pops up on success) */}
+                    {result && (
+                        <div className="bg-red-950/40 border border-red-500/50 rounded-xl p-6 animate-in slide-in-from-bottom-4 backdrop-blur-md">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-3 text-red-400">
+                                    <Unlock size={24} />
+                                    <h3 className="text-xl font-bold">KEY SHATTERED</h3>
+                                </div>
+                                <span className="bg-red-500 text-black text-xs font-bold px-2 py-1 rounded">VULNERABLE</span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div className="space-y-1">
+                                    <span className="text-slate-500 text-xs uppercase">Algorithm</span>
+                                    <div className="text-white font-mono">{result.algorithm}</div>
+                                </div>
+                                <div className="space-y-1">
+                                    <span className="text-slate-500 text-xs uppercase">Qubits Consumed</span>
+                                    <div className="text-white font-mono">{result.qubits_used}</div>
+                                </div>
+                                <div className="col-span-2 space-y-1 pt-2 border-t border-red-500/20">
+                                    <span className="text-slate-500 text-xs uppercase">Prime Factors Found</span>
+                                    <div className="text-red-400 font-mono text-2xl font-bold tracking-widest">
+                                        [{result.guessed_factors.join(" × ")}] = {result.target_number}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
-    )
-}
+    );
+};
+
 export default Simulator;
