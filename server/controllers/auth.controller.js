@@ -298,3 +298,31 @@ export const signMigration = async (req, res) => {
         res.status(500).json({ msg: "Signing Failed" });
     }
 };
+
+// Helper for Shor's
+const runShorScript = () => {
+    return new Promise((resolve) => {
+        const scriptPath = path.join(__dirname, '../shor.py');
+        const pythonProcess = spawn('python', [scriptPath]);
+
+        let dataString = '';
+        pythonProcess.stdout.on('data', (d) => dataString += d.toString());
+        pythonProcess.on('close', () => {
+            try { resolve(JSON.parse(dataString)); } catch (e) { resolve(null); }
+        });
+    });
+};
+
+export const runAttackSimulation = async (req, res) => {
+    try {
+        const result = await runShorScript();
+        if (result && result.success) {
+            res.json(result.data);
+        } else {
+            res.status(500).json({ msg: "Attack Simulation Failed" });
+        }
+    } catch (e) {
+        console.error(e);
+        res.status(500).send("Server Error");
+    }
+};
