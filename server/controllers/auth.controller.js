@@ -302,7 +302,7 @@ export const signMigration = async (req, res) => {
 // Helper for Shor's
 const runShorScript = () => {
     return new Promise((resolve) => {
-        const scriptPath = path.join(__dirname, '../shor.py');
+        const scriptPath = path.join(__dirname, '../shor_algorithm.py');
         const pythonProcess = spawn('python', [scriptPath]);
 
         let dataString = '';
@@ -316,8 +316,8 @@ const runShorScript = () => {
 export const runAttackSimulation = async (req, res) => {
     try {
         const result = await runShorScript();
-        if (result && result.success) {
-            res.json(result.data);
+        if (result && !result.error) {
+            res.json(result);
         } else {
             res.status(500).json({ msg: "Attack Simulation Failed" });
         }

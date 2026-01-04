@@ -1,168 +1,136 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Activity, Lock, AlertTriangle, Radio, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Activity, Lock, RefreshCw, ShieldCheck, ShieldAlert, Zap } from 'lucide-react';
 
-const QuantumMonitor = () => {
+const QuantumMonitor = ({ onSuccess }) => {
     const [loading, setLoading] = useState(false);
-    const [attackMode, setAttackMode] = useState(false);
-    const [result, setResult] = useState(null);
+    const [data, setData] = useState(null);
+    const [error, setError] = useState(null);
 
-    const runSimulation = async () => {
+    const runQKD = async (attack = false) => {
         setLoading(true);
-        setResult(null);
-
-        const token = localStorage.getItem('token');
-
-        if (!token) {
-            console.error("No token found. User likely not logged in.");
-            setLoading(false);
-            return;
-        }
-
-        const config = {
-            headers: {
-                'Content-Type': 'application/json',
-                'x-auth-token': token
-            }
-        };
-
+        setError(null);
+        setData(null);
         try {
-            const res = await axios.post(
-                'http://localhost:5000/api/auth/qkd',
-                { simulateAttack: attackMode },
-                config
+            const token = localStorage.getItem('token');
+            const res = await axios.post('http://localhost:5000/api/auth/qkd', 
+                { simulateAttack: attack },
+                { headers: { 'x-auth-token': token } }
             );
-            setResult(res.data);
+            
+            setData(res.data);
+            
+            if (res.data.secure && onSuccess) {
+                onSuccess();
+            }
         } catch (err) {
-            console.error("Simulation failed", err);
+            console.error(err);
+            setError("QKD Simulation Failed. Backend offline?");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="bg-slate-900/80 border border-slate-700 rounded-2xl p-6 backdrop-blur-sm w-full">
+        <div className="bg-slate-900/80 border border-slate-700 rounded-2xl p-6 backdrop-blur-sm w-full h-full flex flex-col justify-between">
+            {/* Header */}
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+                    <div className="p-2 bg-violet-500/10 rounded-lg text-violet-400">
                         <Activity size={24} />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-white">Quantum Channel Monitor</h3>
-                        <p className="text-xs text-slate-400">BB84 Protocol Real-time Simulation</p>
+                        <h3 className="text-lg font-bold text-white">BB84 Protocol</h3>
+                        <p className="text-xs text-slate-400">Quantum Key Distribution</p>
                     </div>
                 </div>
-
-                {/* Attack Toggle Switch */}
-                <div className="flex items-center gap-3 bg-black/40 p-1 rounded-full border border-slate-700">
-                    <button
-                        onClick={() => setAttackMode(false)}
-                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${!attackMode ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
-                    >
-                        Secure
-                    </button>
-                    <button
-                        onClick={() => setAttackMode(true)}
-                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${attackMode ? 'bg-red-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
-                    >
-                        Intercept
-                    </button>
+                <div className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 border ${
+                    !data ? 'bg-slate-800 border-slate-600 text-slate-400' :
+                    data.secure ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' :
+                    'bg-red-500/20 border-red-500/50 text-red-400'
+                }`}>
+                    {!data ? <Lock size={12} /> : data.secure ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
+                    {!data ? "IDLE" : data.secure ? "CHANNEL SECURE" : "EAVESDROPPER DETECTED"}
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Visualization Area */}
+            <div className="bg-black/40 rounded-xl p-4 border border-slate-800 mb-6 min-h-[140px] flex flex-col justify-center items-center relative overflow-hidden flex-grow">
+                
+                {loading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10">
+                        <RefreshCw className="animate-spin text-violet-400" size={32} />
+                    </div>
+                )}
 
-                {/* Left: Control & Status */}
-                <div className="space-y-6">
-                    <div className="bg-black/50 rounded-xl p-4 border border-slate-800 h-32 flex flex-col justify-center items-center relative overflow-hidden">
-                        {/* Background Animation */}
-                        {loading && (
-                            <div className="absolute inset-0 bg-[url('https://media.giphy.com/media/3o7qE1YN7aQfVOWvks/giphy.gif')] opacity-10 bg-cover mix-blend-screen" />
-                        )}
+                {!data && !loading && (
+                    <div className="text-slate-600 text-sm flex flex-col items-center gap-2">
+                        <Activity size={32} className="opacity-20" />
+                        <span>Ready to initialize Quantum Channel...</span>
+                    </div>
+                )}
 
-                        {!loading && !result && (
-                            <div className="text-slate-500 text-sm flex flex-col items-center gap-2">
-                                <Radio className="animate-pulse" />
-                                <span>Ready to initiate Quantum Key Distribution...</span>
+                {error && !loading && (
+                    <div className="text-red-400 text-sm text-center">
+                        {error}
+                    </div>
+                )}
+
+                {data && (
+                    <div className="w-full space-y-4 animate-in fade-in">
+                        {/* Bits Visualization */}
+                        <div className="flex justify-center gap-1 flex-wrap">
+                            {data.raw_bits_sample.map((bit, i) => (
+                                <div key={i} className={`w-8 h-8 flex items-center justify-center rounded font-mono font-bold text-sm
+                                    ${data.secure ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'bg-red-500/20 text-red-300 border border-red-500/30'}
+                                `}>
+                                    {bit}
+                                </div>
+                            ))}
+                            <span className="self-center text-slate-500 text-xs ml-2">...stream</span>
+                        </div>
+
+                        {/* Metrics */}
+                        <div className="grid grid-cols-3 gap-4 border-t border-white/5 pt-4">
+                            <div className="text-center">
+                                <div className="text-xs text-slate-500 uppercase">QBER</div>
+                                <div className={`font-mono font-bold ${data.qber > 0.1 ? 'text-red-400' : 'text-emerald-400'}`}>
+                                    {(data.qber * 100).toFixed(1)}%
+                                </div>
                             </div>
-                        )}
-
-                        {loading && (
-                            <div className="text-cyan-400 text-sm font-mono flex flex-col items-center gap-2 z-10">
-                                <Activity className="animate-spin" />
-                                <span>Transmitting Qubits (Alice → Bob)...</span>
+                            <div className="text-center">
+                                <div className="text-xs text-slate-500 uppercase">Key Len</div>
+                                <div className="font-mono font-bold text-white">{data.key_length} bits</div>
                             </div>
-                        )}
-
-                        {!loading && result && (() => {
-                            // Safely check QBER. If result is null (shouldn't happen here), default to false.
-                            const qberValue = result.QBER || 0;
-                            const isSafe = qberValue < 5;
-
-                            return (
-                                <div className={`flex flex-col items-center gap-1 z-10 ${isSafe ? 'text-emerald-400' : 'text-red-500'}`}>
-                                    {isSafe ? <ShieldCheck size={32} /> : <ShieldAlert size={32} />}
-                                    <span className="font-bold text-lg">
-                                        {isSafe ? "CHANNEL SECURE" : "INTRUDER DETECTED"}
-                                    </span>
+                            <div className="text-center">
+                                <div className="text-xs text-slate-500 uppercase">Status</div>
+                                <div className={`font-bold text-xs ${data.secure ? 'text-emerald-400' : 'text-red-400'}`}>
+                                    {data.secure ? 'ESTABLISHED' : 'COMPROMISED'}
                                 </div>
-                            );
-                        })()}
+                            </div>
+                        </div>
                     </div>
+                )}
+            </div>
 
-                    <button
-                        onClick={runSimulation}
-                        disabled={loading}
-                        className={`w-full py-3 rounded-xl font-bold text-white shadow-lg transition-all flex items-center justify-center gap-2
-                        ${loading ? 'bg-slate-700 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500'}`}
-                    >
-                        {loading ? 'Negotiating...' : 'Initiate Handshake'}
-                    </button>
-                </div>
-
-                {/* Right: Telemetry Data */}
-                <div className="bg-black/80 rounded-xl border border-slate-800 p-4 font-mono text-xs overflow-hidden flex flex-col relative">
-                    <div className="flex items-center gap-2 mb-2 border-b border-slate-800 pb-2">
-                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                        <span className="text-slate-400">TELEMETRY_LOG</span>
-                    </div>
-
-                    <div className="space-y-2 text-slate-300 flex-grow">
-                        {!result ? (
-                            <p className="opacity-50">Waiting for transmission data...</p>
-                        ) : (
-                            <>
-                                <div className="flex justify-between">
-                                    <span>Total Qubits Sent:</span>
-                                    <span className="text-white">{result.total_qubits}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span>Basis Matches:</span>
-                                    <span className="text-blue-400">{result.basis_matches}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span>Errors Detected:</span>
-                                    <span className={result.errors_detected > 0 ? "text-red-400" : "text-slate-500"}>
-                                        {result.errors_detected}
-                                    </span>
-                                </div>
-                                <div className="h-px bg-slate-800 my-2"></div>
-                                <div className="flex justify-between items-center">
-                                    <span className="font-bold">QBER (Error Rate):</span>
-                                    <span className={`px-2 py-0.5 rounded text-black font-bold ${result.QBER > 5 ? "bg-red-500" : "bg-emerald-500"}`}>
-                                        {result.QBER}%
-                                    </span>
-                                </div>
-                                <div className="mt-2">
-                                    <span className="block text-slate-500 mb-1">Generated Key Fragment:</span>
-                                    <p className="break-all bg-slate-900 p-2 rounded border border-slate-800 text-cyan-500">
-                                        {result.key}
-                                    </p>
-                                </div>
-                            </>
-                        )}
-                    </div>
-                </div>
+            {/* Controls */}
+            <div className="grid grid-cols-2 gap-4">
+                <button 
+                    onClick={() => runQKD(false)}
+                    disabled={loading}
+                    className="py-2 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+                >
+                    {loading ? <RefreshCw className="animate-spin" size={16} /> : <Zap size={16} />}
+                    Establish Key
+                </button>
+                <button 
+                    onClick={() => runQKD(true)}
+                    disabled={loading}
+                    className="py-2 bg-slate-800 hover:bg-red-900/30 text-slate-300 hover:text-red-400 font-bold rounded-lg text-sm transition-colors border border-slate-700 hover:border-red-500/30 flex items-center justify-center gap-2"
+                >
+                    <ShieldAlert size={16} />
+                    Simulate Eve
+                </button>
             </div>
         </div>
     );

@@ -10,7 +10,7 @@ import {
 // Import the BB84 Monitor
 import QuantumMonitor from '../components/QuantumMonitor';
 
-const LEGACY_ADDRESS = "0x30A83F5e57Fa28a89b559850E586e08549eCbBc1";
+const LEGACY_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 const QUANTUM_ADDRESS = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
 
 const LEGACY_ABI = [
@@ -158,6 +158,14 @@ const Migration = () => {
             const userAddress = await signer.getAddress();
             addLog(`Operator: ${userAddress.slice(0, 10)}...`);
 
+            // CHECK OWNERSHIP BEFORE TRANSACTION
+            const legacyCheck = new ethers.Contract(LEGACY_ADDRESS, LEGACY_ABI, provider);
+            const owner = await legacyCheck.owner();
+            if (owner.toLowerCase() !== userAddress.toLowerCase()) {
+                addLog(`⚠️ Owner Mismatch! Contract owned by: ${owner.slice(0,6)}...`);
+                throw new Error("Access Denied: Please switch MetaMask account.");
+            }
+
             // LEGACY WITHDRAW
             addLog("Step 2A: Extracting Funds from Legacy Contract...");
             const legacyWithSigner = new ethers.Contract(LEGACY_ADDRESS, LEGACY_ABI, signer);
@@ -169,7 +177,7 @@ const Migration = () => {
 
             setMigrationStep(2);
 
-            // UANTUM DEPOSIT
+            // QUANTUM DEPOSIT
             addLog("Step 2B: Securing funds into Quantum Lattice...");
             const txCount = await signer.provider.getTransactionCount(userAddress);
 
@@ -184,7 +192,7 @@ const Migration = () => {
 
             // --- C. DILITHIUM SIGNATURE (NEW) ---
             setMigrationStep(3);
-            addLog("Step 3: Generating Dilithium Signature Receipt...");
+            addLog("Step 3: Verifying Off-Chain Dilithium Signature...");
 
             const token = localStorage.getItem('token');
             const sigRes = await axios.post('http://localhost:5000/api/auth/sign-migration',
@@ -193,7 +201,7 @@ const Migration = () => {
             );
 
             setSignature(sigRes.data);
-            addLog("✅ Lattice Signature Verified.");
+            addLog("✅ Hybrid Security Proof Generated.");
 
             setStatus("success");
             await refreshBalances(provider);
@@ -268,7 +276,7 @@ const Migration = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                        <QuantumMonitor />
+                        <QuantumMonitor onSuccess={() => setChannelSecure(true)} />
 
                         {/* Manual Override for Demo Flow if needed */}
                         <div className="p-4 bg-black/40 rounded-xl border border-slate-800 h-full flex flex-col justify-center items-center text-center space-y-3">

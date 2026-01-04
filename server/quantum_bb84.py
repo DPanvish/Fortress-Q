@@ -1,89 +1,86 @@
 import sys
 import json
-import numpy as np
+import random
+import argparse
 from qiskit import QuantumCircuit, transpile
 from qiskit.providers.basic_provider import BasicProvider
 
-def run_bb84_simulation(num_bits=100, eve_present=False):
-    # Setup
-    alice_bits = np.random.randint(2, size=num_bits)
-    alice_bases = np.random.randint(2, size=num_bits)
-    bob_bases = np.random.randint(2, size=num_bits)
-
+def run_bb84(intercept=False):
+    num_qubits = 24 # Length of the transmission
+    
+    # 1. Alice prepares random bits and bases
+    # Bases: 0 = Rectilinear (+), 1 = Diagonal (X)
+    alice_bits = [random.randint(0, 1) for _ in range(num_qubits)]
+    alice_bases = [random.randint(0, 1) for _ in range(num_qubits)]
+    
+    # 2. Bob chooses random bases
+    bob_bases = [random.randint(0, 1) for _ in range(num_qubits)]
+    
+    # 3. Eve chooses bases (if attacking)
+    eve_bases = [random.randint(0, 1) for _ in range(num_qubits)] if intercept else None
+    
     backend = BasicProvider().get_backend('basic_simulator')
     bob_results = []
 
-    # Transmission (Qubit by Qubit)
-    for i in range(num_bits):
+    for i in range(num_qubits):
         qc = QuantumCircuit(1, 1)
-
-        # Alice Prepares
+        
+        # ALICE PREPARES
         if alice_bits[i] == 1:
-            qc.x(0) # Encode 1
+            qc.x(0) # |1>
         if alice_bases[i] == 1:
-            qc.h(0) # Switch to X-basis
-
-        # Eve Intercepts (The Attack)
-        if eve_present:
-            # Eve guesses a basis randomly to measure
-            eve_basis = np.random.randint(2)
-            if eve_basis == 1:
+            qc.h(0) # Rotate to X basis |->
+            
+        # EVE INTERCEPTS (Man-in-the-Middle)
+        if intercept:
+            # Eve measures in her chosen basis
+            if eve_bases[i] == 1:
                 qc.h(0)
-            qc.measure(0, 0) # This Collapses the quantum state
-            # If Eve guessed wrong, she corrupted the qubit.
-            if eve_basis == 1:
-                qc.h(0) # Try to put it back (spoofing), but damage is done.
+            qc.measure(0, 0) # Collapses the state!
+            
+            # If Eve measured in X basis, she must rotate back if she wants to pretend nothing happened?
+            # No, she sends the qubit *as is* after measurement.
+            # If she measured in X, the qubit is now in an X eigenstate.
+            if eve_bases[i] == 1:
+                qc.h(0) 
 
-        # Bob Measures
+        # BOB MEASURES
         if bob_bases[i] == 1:
-            qc.h(0) # Bob matches basis
+            qc.h(0)
         qc.measure(0, 0)
-
-        # Run Simulation
+        
         tqc = transpile(qc, backend)
         job = backend.run(tqc, shots=1)
-        result = job.result().get_counts()
-        measured_bit = int(list(result.keys())[0])
-        bob_results.append(measured_bit)
+        res = int(list(job.result().get_counts().keys())[0])
+        bob_results.append(res)
 
-    # Shifting (Classical Post-Processing)
-    # Alice and bob publicly companr Bases (not bits) and keep only matches
-    shifted_key = []
-    matches = 0
+    # 4. Sifting (Classical Post-Processing)
+    sifted_key = []
     errors = 0
-
-    for i in range(num_bits):
+    
+    for i in range(num_qubits):
+        # They only keep bits where they chose the same basis
         if alice_bases[i] == bob_bases[i]:
-            matches += 1
+            sifted_key.append(bob_results[i])
+            # Check for errors (if Eve intercepted, she might have flipped the bit)
             if alice_bits[i] != bob_results[i]:
                 errors += 1
-            else:
-                shifted_key.append(alice_bits[i])
-
-    # Claculate QBER (Quantum Bit Error Rate)
-    # Ideally )%. If Eve is present, theoretically ~25%
-    qber = errors / matches if matches > 0 else 0
-
-    final_key_hex = ""
-    if len(shifted_key) >= 8:
-        # First 8 bits for demo purpose
-        byte_val = int("".join(map(str, shifted_key[:8])), 2)
-        final_key_hex = hex(byte_val)[2:]
-
+                
+    qber = errors / len(sifted_key) if len(sifted_key) > 0 else 0
+    
     return {
-        "total_qubits": num_bits,
-        "basis_matches": matches,
-        "errors_detected": errors,
-        "QBER": round(qber * 100, 2), # Percentage
-        "key": final_key_hex,
-        "is_secure": qber < 5.0 # Threshold usually ~11%
+        "key_length": len(sifted_key),
+        "qber": round(qber, 2),
+        "secure": qber < 0.1, # Standard threshold is ~11%
+        "raw_bits_sample": alice_bits[:8]
     }
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--attack", action="store_true", help="Simulate Eve eavesdropping")
+    args = parser.parse_args()
+    
     try:
-        # Check if 'attack' argument is passed
-        eve_exists = '--attack' in sys.argv
-        result = run_bb84_simulation(num_bits=50, eve_present=eve_exists)
-        print(json.dumps({"success": True, "data": result}))
+        print(json.dumps({"success": True, "data": run_bb84(args.attack)}))
     except Exception as e:
         print(json.dumps({"success": False, "error": str(e)}))

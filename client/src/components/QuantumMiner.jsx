@@ -12,25 +12,31 @@ const QuantumMiner = () => {
         setResult(null);
         setClassicalLog([]);
 
-        // 1. Simulate Classical Mining (Slow Loop)
         const classicalDelay = (ms) => new Promise(res => setTimeout(res, ms));
 
-        for (let i = 0; i < 4; i++) {
-            setClassicalLog(prev => [...prev, `Checking Nonce ${i.toString(2).padStart(2, '0')}... ❌`]);
-            await classicalDelay(400); // Artificial delay to show "work"
-            // Let's pretend nonce '11' (3) is the target
-            if(i === 3) {
-                setClassicalLog(prev => [...prev, `Nonce 11 Found! ✅`]);
-            }
-        }
-
-        // 2. Run Quantum Mining (Instant)
+        // 1. Run Quantum Mining First (Get the Target)
         try {
             const token = localStorage.getItem('token');
             const res = await axios.post('http://localhost:5000/api/auth/mine', {}, {
                 headers: { 'x-auth-token': token }
             });
-            setResult(res.data);
+            const quantumData = res.data;
+            setResult(quantumData);
+
+            // 2. Run Classical Simulation to find the SAME nonce
+            // Real World Scenario: 6-bit Search Space (N=64)
+            const target = quantumData.decimal_value;
+            
+            for (let i = 0; i < 64; i++) {
+                setClassicalLog(prev => [...prev, `Checking Nonce ${i.toString(2).padStart(6, '0')}... ❌`]);
+                // Faster delay to accommodate larger search space
+                await classicalDelay(40); 
+                
+                if(i === target) {
+                    setClassicalLog(prev => [...prev, `Nonce ${target.toString(2).padStart(6, '0')} Found! ✅`]);
+                    break;
+                }
+            }
         }catch (err) {
             console.error(err);
         }finally {
@@ -47,12 +53,12 @@ const QuantumMiner = () => {
                     </div>
                     <div>
                         <h3 className="text-lg font-bold text-white">Quantum Proof-of-Work</h3>
-                        <p className="text-xs text-slate-400">Grover's Algorithm Consensus</p>
+                        <p className="text-xs text-slate-400">Grover's Algorithm (6-Qubit / N=64)</p>
                     </div>
                 </div>
                 {result && (
                     <div className="px-3 py-1 bg-green-500/20 border border-green-500/50 rounded-full text-green-400 text-xs font-bold flex items-center gap-2">
-                        <BatteryCharging size={14} /> Energy Saved: {result.energy_reduction}
+                        <BatteryCharging size={14} /> Energy Saved: {result.energy_reduction} (Grover's Speedup)
                     </div>
                 )}
             </div>
@@ -86,7 +92,7 @@ const QuantumMiner = () => {
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-slate-400 text-xs">Iterations:</span>
-                                <span className="text-white font-bold">1 <span className="text-xs text-slate-500">(vs 4)</span></span>
+                                <span className="text-white font-bold">~6 <span className="text-xs text-slate-500">(vs 32)</span></span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-slate-400 text-xs">Time:</span>

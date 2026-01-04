@@ -1,31 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, Wallet, LogOut, ShieldAlert, Download } from 'lucide-react';
+import { ShieldCheck, Wallet, LogOut, ShieldAlert } from 'lucide-react';
 import axios from 'axios';
-import { MlKem1024 } from 'crystals-kyber-js';
-import CryptoJS from 'crypto-js';
 
-import FileUpload from '../components/FileUpload';
-import FileList from '../components/FileList';
 import QuantumMonitor from "../components/QuantumMonitor.jsx";
 import QuantumMiner from "../components/QuantumMiner.jsx";
 
 const Dashboard = () => {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
-    const [files, setFiles] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [decrypting, setDecrypting] = useState(false);
-
-    // Helper: Base64 -> Uint8Array
-    const base64ToUint8Array = (base64) => {
-        if (!base64) return new Uint8Array(0);
-        const binaryString = window.atob(base64);
-        const len = binaryString.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i++) { bytes[i] = binaryString.charCodeAt(i); }
-        return bytes;
-    };
 
     useEffect(() => {
         const loadData = async () => {
@@ -34,12 +18,8 @@ const Dashboard = () => {
 
             try {
                 const config = { headers: { 'x-auth-token': token } };
-                const [userRes, filesRes] = await Promise.all([
-                    axios.get('http://localhost:5000/api/auth/me', config),
-                    axios.get('http://localhost:5000/api/files', config)
-                ]);
+                const userRes = await axios.get('http://localhost:5000/api/auth/me', config);
                 setUser(userRes.data);
-                setFiles(filesRes.data);
             } catch (err) {
                 localStorage.removeItem('token');
                 navigate('/login');
@@ -53,92 +33,6 @@ const Dashboard = () => {
     const handleLogout = () => {
         localStorage.removeItem('token');
         navigate('/login');
-    };
-
-    const handleDownload = async (file) => {
-        try {
-            setDecrypting(true);
-            console.log(`1. Downloading Encrypted Content...`);
-
-            // A. FETCH ENCRYPTED CONTENT
-            const response = await axios.get(`http://localhost:5000/api/files/download/${file.ipfsHash}`, {
-                responseType: 'text'
-            });
-            const encryptedContent = response.data;
-
-            if (!encryptedContent) throw new Error("Downloaded content is empty");
-
-            console.log("2. Decapsulating Quantum Key...");
-
-            // B. RECOVER AES KEY (Kyber-1024)
-            if (!user?.encryptedQuantumPrivateKey) throw new Error("User private key missing");
-
-            const privateKeyBytes = base64ToUint8Array(user.encryptedQuantumPrivateKey);
-            if (privateKeyBytes.length === 0) throw new Error("Invalid Private Key");
-
-            // Handle various formats for the key
-            let keyData = file.encryptedKey;
-            if (typeof keyData === 'string') {
-                try {
-                    const parsed = JSON.parse(keyData);
-                    keyData = parsed;
-                } catch (e) { }
-            }
-            if (keyData && typeof keyData === 'object' && keyData.type === 'Buffer' && Array.isArray(keyData.data)) {
-                keyData = keyData.data;
-            }
-            if (keyData && typeof keyData === 'object' && !Array.isArray(keyData) && !keyData.length) {
-                keyData = Object.values(keyData);
-            }
-
-            if (!keyData) throw new Error("File encrypted key is missing");
-            const capsuleBytes = new Uint8Array(keyData);
-
-            if (capsuleBytes.length === 0) throw new Error("Encrypted Key (Capsule) is empty");
-
-            const recipient = new MlKem1024();
-            const decryptedSecret = await recipient.decap(capsuleBytes, privateKeyBytes);
-
-            if (!decryptedSecret) throw new Error("Quantum decapsulation failed");
-
-            // Convert to Hex String
-            const aesKeyHex = Array.from(decryptedSecret).map(b => b.toString(16).padStart(2, '0')).join('');
-            console.log("AES Key Recovered:", aesKeyHex.substring(0, 10) + "...");
-
-            // C. DECRYPT CONTENT (AES-256)
-            console.log("3. Decrypting...");
-            const bytes = CryptoJS.AES.decrypt(encryptedContent.trim(), aesKeyHex);
-            const decryptedDataURI = bytes.toString(CryptoJS.enc.Utf8);
-
-            if (!decryptedDataURI || !decryptedDataURI.startsWith("data:")) {
-                throw new Error("Decryption failed. (Key mismatch or corrupted file)");
-            }
-
-            console.log("✅ Decryption Successful! Reconstructing Blob...");
-
-            // D. CONVERT TO BLOB
-            const blob = await (await fetch(decryptedDataURI)).blob();
-
-            // E. TRIGGER DOWNLOAD
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            const finalFileName = file.originalName.endsWith('.enc')
-                ? file.originalName.slice(0, -4)
-                : file.originalName;
-            link.href = url;
-            link.download = "Recovered_" + finalFileName;
-            document.body.appendChild(link);
-            link.click();
-
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-
-        } catch (err) {
-            console.error("Decryption Failed:", err);
-            alert("Decryption Error: " + err.message);
-        } finally {
-            setDecrypting(false);
-        }
     };
 
     if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-cyan-400">Loading Vault...</div>;
@@ -211,17 +105,6 @@ const Dashboard = () => {
                 <div className="max-w-4xl mx-auto w-full mb-8">
                     <QuantumMonitor />
                     <QuantumMiner />
-                </div>
-
-                {/* Upload Section */}
-                <div className="flex justify-center">
-                    <FileUpload />
-                </div>
-
-                {/* File List Section */}
-                <div className="max-w-4xl mx-auto w-full">
-                    <FileList files={files} onDownload={handleDownload} />
-                    {decrypting && <p className="text-center text-cyan-400 mt-4 animate-pulse">Running Quantum Decapsulation...</p>}
                 </div>
 
                 {/* Tools Grid */}

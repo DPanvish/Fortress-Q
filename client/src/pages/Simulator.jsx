@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ShieldAlert, Zap, Lock, Unlock, Terminal, Cpu, Clock } from 'lucide-react';
@@ -8,10 +8,27 @@ const Simulator = () => {
     const [running, setRunning] = useState(false);
     const [result, setResult] = useState(null);
     const [logs, setLogs] = useState([]);
+    const [targetWallet, setTargetWallet] = useState("Loading...");
 
     // Thesis Data Points
     const CLASSICAL_TIME = "300 Trillion Years";
     const QUANTUM_TIME = "~10 Seconds";
+
+    // Fetch User Wallet to Target
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                if(token) {
+                    const res = await axios.get('http://localhost:5000/api/auth/me', {
+                        headers: { 'x-auth-token': token }
+                    });
+                    setTargetWallet(res.data.walletAddressETH || "0xUnknown");
+                }
+            } catch(e) {}
+        };
+        fetchUser();
+    }, []);
 
     const addLog = (msg) => setLogs(prev => [...prev, `> ${msg}`]);
 
@@ -23,11 +40,12 @@ const Simulator = () => {
         // CLASSICAL PHASE (The Struggle)
         addLog("Initializing Classical Brute Force Attack...");
         await new Promise(r => setTimeout(r, 600));
-        addLog("Target: 2048-bit RSA Key (N=15 for demo)");
+        addLog(`Target: ECDSA Public Key derived from:`);
+        addLog(`[ ${targetWallet} ]`);
 
-        addLog("Attempting General Number Field Sieve (GNFS)...");
+        addLog("Attempting Classical GNFS on N=15...");
         await new Promise(r => setTimeout(r, 500));
-        addLog("❌ Iteration 10^9 failed. Prime factors unknown.");
+        addLog("❌ Classical CPU struggling with prime factorization...");
 
         addLog(`⚠ ESTIMATED TIME REMAINING: ${CLASSICAL_TIME}`);
         await new Promise(r => setTimeout(r, 800));
@@ -47,12 +65,12 @@ const Simulator = () => {
             if (res.data) {
                 setResult(res.data);
                 addLog(`✅ QUANTUM CIRCUIT COMPLETE`);
-                addLog(`Period Found: 4`);
+                addLog(`Period Found: ${res.data.period_r}`);
                 addLog(`Factors Derived: ${res.data.guessed_factors.join(", ")}`);
 
                 // THE VISUAL BRIDGE:
                 // We pretend that finding factors 3 & 5 reveals the key
-                addLog(`Derived Private Key: 0x0000...000F (Factors 3*5)`);
+                addLog(`Derived Private Key for ${targetWallet.substring(0,6)}...`);
                 addLog(`Target N=${res.data.target_number} BROKEN.`);
             }
         } catch (err) {
