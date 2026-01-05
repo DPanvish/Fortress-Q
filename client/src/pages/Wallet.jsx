@@ -1,12 +1,16 @@
 import React, {useEffect, useState} from 'react'
 import {useNavigate} from "react-router-dom";
-import {AlertTriangle, CheckCircle, RefreshCw, Wallet as WalletIcon} from "lucide-react";
+import {AlertTriangle, CheckCircle, RefreshCw, Wallet as WalletIcon, Lock, ArrowDown, Shield} from "lucide-react";
 import axios from 'axios';
 import { ethers } from 'ethers';
 
 // Address of the Quantum Vault (Must match Migration.jsx)
-const QUANTUM_ADDRESS = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
-const QUANTUM_ABI = ["function balances(address) view returns (uint256)"];
+const QUANTUM_ADDRESS = import.meta.env.VITE_QUANTUM_ADDRESS || "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
+const QUANTUM_ABI = [
+    "function balances(address) view returns (uint256)",
+    "function quantumLock() view returns (bytes32)",
+    "function withdrawSecurely(string memory latticeSecret) external"
+];
 
 const Wallet = () => {
     const [user, setUser] = useState(null);
@@ -14,6 +18,8 @@ const Wallet = () => {
     const [balances, setBalances] = useState({ eth: "0.00", quantum: "0.00" });
     const [connectedAddress, setConnectedAddress] = useState(null);
     const [refreshing, setRefreshing] = useState(false);
+    const [vaultData, setVaultData] = useState({ lockHash: null });
+    const [withdrawing, setWithdrawing] = useState(false);
     const navigate = useNavigate();
 
     const fetchWalletData = async () => {
@@ -22,7 +28,8 @@ const Wallet = () => {
             if (!token) { navigate('/'); return; }
 
             // 1. Get User Profile
-            const response = await axios.get("http://localhost:5000/api/auth/me", {
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const response = await axios.get(`${API_URL}/api/auth/me`, {
                 headers: { "x-auth-token": token }
             });
             const userData = response.data;
@@ -46,7 +53,8 @@ const Wallet = () => {
                 try {
                     setRefreshing(true);
                     // Connect to Localhost Hardhat Node directly (Read-Only)
-                    const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
+                    const RPC_URL = import.meta.env.VITE_BLOCKCHAIN_RPC || "http://127.0.0.1:8545";
+                    const provider = new ethers.JsonRpcProvider(RPC_URL);
                     
                     // A. Legacy Balance (Native ETH)
                     const ethBal = await provider.getBalance(targetAddress);
@@ -54,11 +62,15 @@ const Wallet = () => {
                     // B. Quantum Vault Balance (Contract Mapping)
                     const vaultContract = new ethers.Contract(QUANTUM_ADDRESS, QUANTUM_ABI, provider);
                     const qBal = await vaultContract.balances(targetAddress);
+                    
+                    // C. Dynamic Vault Data (Fetch the active Quantum Lock)
+                    const lockHash = await vaultContract.quantumLock();
 
                     setBalances({
                         eth: ethers.formatEther(ethBal),
                         quantum: ethers.formatEther(qBal)
                     });
+                    setVaultData({ lockHash });
                 } catch (chainErr) {
                     console.error("Blockchain connection failed:", chainErr);
                 } finally {
@@ -73,6 +85,33 @@ const Wallet = () => {
             }
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleWithdraw = async () => {
+        if (!window.ethereum) return alert("MetaMask required");
+        
+        // In a real app, this secret comes from the user's private storage or QKD.
+        // For the demo, we use the known secret from deployment.
+        const secret = prompt("Enter Lattice Secret to unlock funds:", "lattice-secret-123");
+        if (!secret) return;
+
+        try {
+            setWithdrawing(true);
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+            const vaultContract = new ethers.Contract(QUANTUM_ADDRESS, QUANTUM_ABI, signer);
+
+            const tx = await vaultContract.withdrawSecurely(secret);
+            await tx.wait();
+            
+            alert("✅ Withdrawal Successful! Funds moved to Native Balance.");
+            fetchWalletData();
+        } catch (e) {
+            console.error(e);
+            alert("Withdrawal Failed: " + (e.reason || e.message));
+        } finally {
+            setWithdrawing(false);
         }
     };
 
@@ -167,8 +206,26 @@ const Wallet = () => {
                                 {user?.quantumPublicKey || "Generating..."}
                             </div>
                         </div>
-                        <div className="p-4 bg-cyan-900/10 rounded-lg border border-cyan-900/30 text-cyan-200 text-sm">
-                            🛡️ Secured by Module-Lattice Key Encapsulation (ML-KEM). Mathematically resistant to Shor's Algorithm.
+                        
+                        {/* Dynamic Vault Status */}
+                        <div className="p-4 bg-cyan-900/10 rounded-lg border border-cyan-900/30 space-y-2">
+                            <div className="flex items-center gap-2 text-cyan-200 text-sm font-bold">
+                                <Shield size={14} /> Active Quantum Lock
+                            </div>
+                            <div className="font-mono text-[10px] text-cyan-400/70 break-all">
+                                {vaultData.lockHash || "Loading Contract State..."}
+                            </div>
+                            
+                            {balances.quantum !== "0.0" && (
+                                <button 
+                                    onClick={handleWithdraw}
+                                    disabled={withdrawing}
+                                    className="w-full mt-2 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded flex items-center justify-center gap-2 transition"
+                                >
+                                    {withdrawing ? <RefreshCw className="animate-spin" size={12} /> : <ArrowDown size={12} />}
+                                    Withdraw to Native Wallet
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

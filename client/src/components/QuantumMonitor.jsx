@@ -13,7 +13,8 @@ const QuantumMonitor = ({ onSuccess }) => {
         setData(null);
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.post('http://localhost:5000/api/auth/qkd', 
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const res = await axios.post(`${API_URL}/api/auth/qkd`, 
                 { simulateAttack: attack },
                 { headers: { 'x-auth-token': token } }
             );

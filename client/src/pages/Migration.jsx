@@ -10,8 +10,8 @@ import {
 // Import the BB84 Monitor
 import QuantumMonitor from '../components/QuantumMonitor';
 
-const LEGACY_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-const QUANTUM_ADDRESS = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
+const LEGACY_ADDRESS = import.meta.env.VITE_LEGACY_ADDRESS || "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const QUANTUM_ADDRESS = import.meta.env.VITE_QUANTUM_ADDRESS || "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
 
 const LEGACY_ABI = [
     "function withdraw() external",
@@ -83,7 +83,7 @@ const Migration = () => {
                     params: [{
                         chainId: '0x539',
                         chainName: 'Hardhat Localhost',
-                        rpcUrls: ['http://127.0.0.1:8545'],
+                        rpcUrls: [import.meta.env.VITE_BLOCKCHAIN_RPC || 'http://127.0.0.1:8545'],
                         nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 }
                     }],
                 });
@@ -195,7 +195,8 @@ const Migration = () => {
             addLog("Step 3: Verifying Off-Chain Dilithium Signature...");
 
             const token = localStorage.getItem('token');
-            const sigRes = await axios.post('http://localhost:5000/api/auth/sign-migration',
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const sigRes = await axios.post(`${API_URL}/api/auth/sign-migration`,
                 { migrationId: receipt.hash.substring(0, 10) },
                 { headers: { 'x-auth-token': token } }
             );

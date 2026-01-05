@@ -20,7 +20,8 @@ const Simulator = () => {
             try {
                 const token = localStorage.getItem('token');
                 if(token) {
-                    const res = await axios.get('http://localhost:5000/api/auth/me', {
+                    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                    const res = await axios.get(`${API_URL}/api/auth/me`, {
                         headers: { 'x-auth-token': token }
                     });
                     setTargetWallet(res.data.walletAddressETH || "0xUnknown");
@@ -58,7 +59,8 @@ const Simulator = () => {
             const token = localStorage.getItem('token');
 
             // Call the real Python script
-            const res = await axios.post('http://localhost:5000/api/auth/attack', {}, {
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const res = await axios.post(`${API_URL}/api/auth/attack`, {}, {
                 headers: { 'x-auth-token': token }
             });
 

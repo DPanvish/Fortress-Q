@@ -73,7 +73,8 @@ const FileUpload = () => {
 
         try {
             // STEP 1: Get Server's Public Key
-            const keyResponse = await fetch('http://localhost:5000/api/auth/me', {
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const keyResponse = await fetch(`${API_URL}/api/auth/me`, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             const userData = await keyResponse.json();
@@ -115,7 +116,7 @@ const FileUpload = () => {
                 // We convert the Uint8Array ciphertext to a standard Array for JSON
                 formData.append('encapsulatedKey', JSON.stringify(Array.from(ciphertext)));
 
-                const uploadResponse = await fetch('http://localhost:5000/api/files/upload', {
+                const uploadResponse = await fetch(`${API_URL}/api/files/upload`, {
                     method: 'POST',
                     headers: { 'x-auth-token': localStorage.getItem('token') },
                     body: formData,

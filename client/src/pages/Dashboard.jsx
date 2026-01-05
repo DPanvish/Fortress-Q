@@ -18,7 +18,8 @@ const Dashboard = () => {
 
             try {
                 const config = { headers: { 'x-auth-token': token } };
-                const userRes = await axios.get('http://localhost:5000/api/auth/me', config);
+                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                const userRes = await axios.get(`${API_URL}/api/auth/me`, config);
                 setUser(userRes.data);
             } catch (err) {
                 localStorage.removeItem('token');
