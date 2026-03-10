@@ -196,7 +196,7 @@ const Migration = () => {
 
             const token = localStorage.getItem('token');
             const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const sigRes = await axios.post(`${API_URL}/api/auth/sign-migration`,
+            const sigRes = await axios.post(`${API_URL}/api/quantum/sign-migration`,
                 { migrationId: receipt.hash.substring(0, 10) },
                 { headers: { 'x-auth-token': token } }
             );

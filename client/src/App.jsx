@@ -7,7 +7,6 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import Migration from "./pages/Migration.jsx";
 import PrivateRoute from './components/PrivateRoute';
-import AttackSimulator from "./pages/AttackSimulator.jsx";
 import Simulator from "./pages/Simulator.jsx";
 
 const App = () => {

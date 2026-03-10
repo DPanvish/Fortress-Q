@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ShieldAlert, Zap, Lock, Unlock, Terminal, Cpu, Clock } from 'lucide-react';
+import { ShieldAlert, Zap, Lock, Unlock, Terminal, Cpu, Clock, ShieldCheck, Search, Database } from 'lucide-react';
 
 const Simulator = () => {
     const navigate = useNavigate();
@@ -9,6 +9,7 @@ const Simulator = () => {
     const [result, setResult] = useState(null);
     const [logs, setLogs] = useState([]);
     const [targetWallet, setTargetWallet] = useState("Loading...");
+    const [walletType, setWalletType] = useState("legacy"); // 'legacy' or 'quantum'
 
     // Thesis Data Points
     const CLASSICAL_TIME = "300 Trillion Years";
@@ -21,7 +22,7 @@ const Simulator = () => {
                 const token = localStorage.getItem('token');
                 if(token) {
                     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-                    const res = await axios.get(`${API_URL}/api/auth/me`, {
+                    const res = await axios.get(`${API_URL}/api/quantum/me`, {
                         headers: { 'x-auth-token': token }
                     });
                     setTargetWallet(res.data.walletAddressETH || "0xUnknown");
@@ -32,48 +33,113 @@ const Simulator = () => {
     }, []);
 
     const addLog = (msg) => setLogs(prev => [...prev, `> ${msg}`]);
+    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
     const startSimulation = async () => {
         setRunning(true);
         setLogs([]);
         setResult(null);
 
-        // CLASSICAL PHASE (The Struggle)
-        addLog("Initializing Classical Brute Force Attack...");
-        await new Promise(r => setTimeout(r, 600));
-        addLog(`Target: ECDSA Public Key derived from:`);
-        addLog(`[ ${targetWallet} ]`);
+        // PHASE 1: RECONNAISSANCE
+        addLog(`INITIATING TARGET ACQUISITION...`);
+        await delay(800);
+        addLog(`Scanning Blockchain Network for ${walletType.toUpperCase()} signatures...`);
+        await delay(1200);
 
-        addLog("Attempting Classical GNFS on N=15...");
-        await new Promise(r => setTimeout(r, 500));
-        addLog("❌ Classical CPU struggling with prime factorization...");
+        if (walletType === 'legacy') {
+            addLog(`Target Identified: ${targetWallet}`);
+            await delay(600);
+            addLog(`Extracting Public Key from Transaction History...`);
+            await delay(1000);
+            addLog(`Public Key Found: 04a3b...9f21 (ECDSA secp256k1)`);
+            await delay(800);
+            addLog(`Mapping ECDSA Key to Integer Factorization Problem (N)...`);
+            await delay(800);
+            addLog(`Simulated Modulus N = 15 (for demonstration)`);
+        } else {
+            addLog(`Target Identified: ${targetWallet} (Quantum-Resistant)`);
+            await delay(600);
+            addLog(`Analyzing Lattice Structure (ML-KEM-1024)...`);
+            await delay(1000);
+            addLog(`Lattice Basis: 1024-dimensional vector space`);
+        }
 
-        addLog(`⚠ ESTIMATED TIME REMAINING: ${CLASSICAL_TIME}`);
-        await new Promise(r => setTimeout(r, 800));
+        // PHASE 2: CLASSICAL ATTACK (The Struggle)
+        addLog("------------------------------------------------");
+        addLog("PHASE 1: CLASSICAL CRYPTANALYSIS");
 
-        // QUANTUM PHASE (The Solution)
-        addLog("🚀 ACTIVATING QUANTUM CIRCUIT (QISKIT)...");
-        addLog("Initializing Superposition & Oracle...");
+        if (walletType === 'legacy') {
+            addLog("Attempting General Number Field Sieve (GNFS)...");
+            await delay(1500);
+            addLog("CPU Load: 100%");
+            await delay(1000);
+            addLog("❌ Classical CPU struggling with prime factorization...");
+            addLog(`⚠ ESTIMATED TIME TO CRACK: ${CLASSICAL_TIME}`);
+        } else {
+            addLog("Attempting Lattice Basis Reduction (BKZ Algorithm)...");
+            await delay(1500);
+            addLog("Calculating Shortest Vector Problem (SVP)...");
+            await delay(1000);
+            addLog("❌ Exponential complexity encountered.");
+            addLog(`⚠ ESTIMATED TIME TO CRACK: INFINITE`);
+        }
+
+        await delay(1000);
+
+        // PHASE 3: QUANTUM ATTACK (The Solution)
+        addLog("------------------------------------------------");
+        addLog("PHASE 2: QUANTUM COMPUTING ATTACK");
+        addLog("🚀 ACTIVATING QISKIT RUNTIME ENVIRONMENT...");
+        await delay(800);
+        addLog("Initializing Qubits in Superposition...");
+        await delay(600);
+        addLog("Applying Hadamard Gates...");
+        await delay(600);
 
         try {
             const token = localStorage.getItem('token');
 
             // Call the real Python script
             const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const res = await axios.post(`${API_URL}/api/auth/attack`, {}, {
+
+            // We can simulate a different N for variety if we wanted, but 15 is the standard demo
+            const targetVal = 15;
+
+            if (walletType === 'legacy') {
+                addLog(`Running Shor's Algorithm on N=${targetVal}...`);
+            } else {
+                addLog(`Attempting Quantum Fourier Transform on Lattice Grid...`);
+            }
+
+            const res = await axios.post(`${API_URL}/api/quantum/attack`, {
+                walletType: walletType,
+                targetValue: targetVal
+            }, {
                 headers: { 'x-auth-token': token }
             });
 
+            await delay(1500); // Suspense
+
             if (res.data) {
                 setResult(res.data);
-                addLog(`✅ QUANTUM CIRCUIT COMPLETE`);
-                addLog(`Period Found: ${res.data.period_r}`);
-                addLog(`Factors Derived: ${res.data.guessed_factors.join(", ")}`);
+                addLog(`✅ QUANTUM CIRCUIT EXECUTION COMPLETE`);
 
-                // THE VISUAL BRIDGE:
-                // We pretend that finding factors 3 & 5 reveals the key
-                addLog(`Derived Private Key for ${targetWallet.substring(0,6)}...`);
-                addLog(`Target N=${res.data.target_number} BROKEN.`);
+                if (res.data.status === "VULNERABLE") {
+                    addLog(`Measurement Collapsed to Eigenstate.`);
+                    addLog(`Period (r) Found: ${res.data.period_r}`);
+                    await delay(500);
+                    addLog(`Calculating GCD...`);
+                    addLog(`Factors Derived: ${res.data.guessed_factors.join(", ")}`);
+                    await delay(500);
+                    addLog(`Reconstructing Private Key...`);
+                    addLog(`Derived Private Key for ${targetWallet.substring(0,6)}...`);
+                    addLog(`Target N=${res.data.target_number} BROKEN.`);
+                } else {
+                    addLog(`⚠ SHOR'S ALGORITHM FAILED`);
+                    addLog(`Reason: ${res.data.message}`);
+                    addLog(`Lattice structure has no periodic function to exploit.`);
+                    addLog(`Target Wallet is QUANTUM RESISTANT.`);
+                }
             }
         } catch (err) {
             console.error(err);
@@ -94,18 +160,45 @@ const Simulator = () => {
                     <div>
                         <h1 className="text-4xl font-bold text-white mb-2">Cryptographic <span className="text-red-500">Attack Vector</span></h1>
                         <p className="text-slate-400 leading-relaxed">
-                            Current blockchain security relies on the difficulty of factoring large numbers (RSA) or discrete logarithms (ECC).
-                            <strong> Shor's Algorithm</strong> utilizes quantum superposition to solve these problems exponentially faster.
+                            Real-time simulation of a Quantum Attack on blockchain assets.
+                            Demonstrating the vulnerability of ECDSA (Legacy) vs. the resilience of Lattice Cryptography (Quantum).
                         </p>
+                    </div>
+
+                    {/* Wallet Type Selection */}
+                    <div className="bg-slate-900 border border-slate-700 p-4 rounded-xl">
+                        <h3 className="text-sm font-bold text-slate-400 mb-3 uppercase">Select Target Architecture</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <button
+                                onClick={() => setWalletType('legacy')}
+                                className={`p-4 rounded-lg border flex flex-col items-center gap-2 transition-all ${walletType === 'legacy' ? 'bg-red-900/20 border-red-500 text-red-400' : 'bg-slate-800 border-transparent text-slate-500 hover:bg-slate-700'}`}
+                            >
+                                <Lock size={24} />
+                                <span className="font-bold">Legacy Wallet</span>
+                                <span className="text-xs opacity-70">ECDSA / RSA</span>
+                            </button>
+                            <button
+                                onClick={() => setWalletType('quantum')}
+                                className={`p-4 rounded-lg border flex flex-col items-center gap-2 transition-all ${walletType === 'quantum' ? 'bg-cyan-900/20 border-cyan-500 text-cyan-400' : 'bg-slate-800 border-transparent text-slate-500 hover:bg-slate-700'}`}
+                            >
+                                <ShieldCheck size={24} />
+                                <span className="font-bold">Quantum Wallet</span>
+                                <span className="text-xs opacity-70">Kyber / Dilithium</span>
+                            </button>
+                        </div>
                     </div>
 
                     {/* Comparison Cards */}
                     <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl space-y-4 shadow-xl">
                         <div className="flex items-center gap-4 mb-4">
-                            <div className="bg-slate-800 p-3 rounded-full"><Lock className="text-slate-400" /></div>
+                            <div className="bg-slate-800 p-3 rounded-full">
+                                {walletType === 'legacy' ? <Search className="text-red-400" /> : <Database className="text-cyan-400" />}
+                            </div>
                             <div>
                                 <h3 className="font-bold text-white">Target Encryption</h3>
-                                <p className="text-xs text-slate-500">Simulating N=15 (RSA Concept)</p>
+                                <p className="text-xs text-slate-500">
+                                    {walletType === 'legacy' ? "Simulating N=15 (RSA Concept)" : "Simulating Lattice Grid (ML-KEM)"}
+                                </p>
                             </div>
                         </div>
 
@@ -136,7 +229,7 @@ const Simulator = () => {
                         ${running ? 'bg-slate-800 text-slate-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-500 text-white hover:scale-105'}`}
                     >
                         {running ? <Zap className="animate-spin" /> : <ShieldAlert />}
-                        {running ? "Running Qiskit Circuit..." : "Launch Shor's Algorithm"}
+                        {running ? "Running Attack Simulation..." : "Launch Shor's Attack"}
                     </button>
                 </div>
 
@@ -162,9 +255,11 @@ const Simulator = () => {
                             {logs.map((log, i) => (
                                 <p key={i} className={`
                                     ${log.includes("BROKEN") ? "text-red-500 font-bold bg-red-900/10 p-1" : ""}
+                                    ${log.includes("RESISTANT") ? "text-green-400 font-bold bg-green-900/10 p-1" : ""}
                                     ${log.includes("CLASSICAL") ? "text-yellow-500" : ""}
                                     ${log.includes("QUANTUM") ? "text-cyan-400" : ""}
-                                    ${!log.includes("BROKEN") && !log.includes("CLASSICAL") && !log.includes("QUANTUM") ? "text-slate-300" : ""}
+                                    ${log.includes("PHASE") ? "text-white font-bold border-b border-white/20 pb-1 mt-2" : ""}
+                                    ${!log.includes("BROKEN") && !log.includes("RESISTANT") && !log.includes("CLASSICAL") && !log.includes("QUANTUM") && !log.includes("PHASE") ? "text-slate-300" : ""}
                                 `}>
                                     {log}
                                 </p>
@@ -176,13 +271,15 @@ const Simulator = () => {
 
                     {/* Result Card (Pops up on success) */}
                     {result && (
-                        <div className="bg-red-950/40 border border-red-500/50 rounded-xl p-6 animate-in slide-in-from-bottom-4 backdrop-blur-md">
+                        <div className={`border rounded-xl p-6 animate-in slide-in-from-bottom-4 backdrop-blur-md ${result.status === "VULNERABLE" ? "bg-red-950/40 border-red-500/50" : "bg-green-950/40 border-green-500/50"}`}>
                             <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3 text-red-400">
-                                    <Unlock size={24} />
-                                    <h3 className="text-xl font-bold">KEY SHATTERED</h3>
+                                <div className={`flex items-center gap-3 ${result.status === "VULNERABLE" ? "text-red-400" : "text-green-400"}`}>
+                                    {result.status === "VULNERABLE" ? <Unlock size={24} /> : <ShieldCheck size={24} />}
+                                    <h3 className="text-xl font-bold">{result.status === "VULNERABLE" ? "KEY SHATTERED" : "ATTACK REPELLED"}</h3>
                                 </div>
-                                <span className="bg-red-500 text-black text-xs font-bold px-2 py-1 rounded">VULNERABLE</span>
+                                <span className={`text-black text-xs font-bold px-2 py-1 rounded ${result.status === "VULNERABLE" ? "bg-red-500" : "bg-green-500"}`}>
+                                    {result.status}
+                                </span>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4 text-sm">
@@ -194,10 +291,13 @@ const Simulator = () => {
                                     <span className="text-slate-500 text-xs uppercase">Qubits Consumed</span>
                                     <div className="text-white font-mono">{result.qubits_used}</div>
                                 </div>
-                                <div className="col-span-2 space-y-1 pt-2 border-t border-red-500/20">
-                                    <span className="text-slate-500 text-xs uppercase">Prime Factors Found</span>
-                                    <div className="text-red-400 font-mono text-2xl font-bold tracking-widest">
-                                        [{result.guessed_factors.join(" × ")}] = {result.target_number}
+                                <div className={`col-span-2 space-y-1 pt-2 border-t ${result.status === "VULNERABLE" ? "border-red-500/20" : "border-green-500/20"}`}>
+                                    <span className="text-slate-500 text-xs uppercase">Result</span>
+                                    <div className={`${result.status === "VULNERABLE" ? "text-red-400" : "text-green-400"} font-mono text-lg font-bold tracking-wide`}>
+                                        {result.status === "VULNERABLE" ?
+                                            `[${result.guessed_factors.join(" × ")}] = ${result.target_number}` :
+                                            result.message
+                                        }
                                     </div>
                                 </div>
                             </div>

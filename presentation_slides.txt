@@ -1,0 +1,146 @@
+Slide: 1. Title Slide
+ Project title: Fortress-Q: Quantum-Resistant Blockchain Vault
+ Project Internal Review-1
+ Date: [Current Date]
+ Student names: [Student Name 1], [Student Name 2]
+ Guide name: [Guide Name]
+ Department: Computer Science & Engineering
+ College name & logo: [College Name]
+
+Slide: 2. Abstract
+ Brief overview: Fortress-Q is a comprehensive system demonstrating the impact of quantum computing on blockchain security and providing a quantum-resistant solution.
+ Main problem being solved: Vulnerability of legacy cryptographic algorithms (RSA, ECDSA) to Shor's algorithm, which threatens the security of current blockchain assets.
+ Key solution approach: Implementing a "Quantum Vault" using Post-Quantum Cryptography (Lattice-based CRYSTALS-Dilithium), simulating Quantum Key Distribution (BB84), and demonstrating quantum mining advantages (Grover's Algorithm).
+
+Slide: 3. Table of Contents
+TABLE OF CONTENTS
+1. Introduction .......................... Slide 4
+2. Literature Survey ..................... Slide 5
+3. System Analysis ....................... Slide 6
+4. System Design ......................... Slide 7
+5. Implementation ........................ Slide 8
+6. Experimentation ....................... Slide 9
+7. Results & Analysis .................... Slide 10
+8. Discussion ............................ Slide 11
+9. Conclusion ............................ Slide 12
+10. Future Enhancements .................. Slide 13
+11. References ........................... Slide 14
+12. Q&A .................................. Slide 15
+
+Slide: 4. Introduction
+ Problem statement: Quantum computers utilizing Shor's algorithm can efficiently factor large integers, breaking the security of RSA and ECDSA keys used in cryptocurrencies.
+ Objectives: To simulate quantum attacks on legacy wallets and develop a secure, quantum-resistant vault for asset storage.
+ Goals: 
+  - Demonstrate Shor's algorithm factoring.
+  - Implement Lattice-based signatures (Dilithium).
+  - Simulate Quantum Key Distribution (BB84).
+  - Demonstrate Quantum Mining (Grover's).
+
+Slide: 5. Literature Survey/Review
+ Summary of existing solutions: Current blockchains rely on classical ECC/RSA. NIST is standardizing Post-Quantum Cryptography (PQC) algorithms like Kyber and Dilithium.
+ What others have done: Theoretical research on PQC and some initial blockchain integrations, but few comprehensive educational/demonstration platforms.
+ Gaps or limitations in existing work: Lack of accessible tools to visualize and understand the quantum threat and the migration path to quantum-safe wallets.
+ How your project fills these gaps: Provides a practical, interactive simulation of both the attack (Shor's) and the defense (Lattice, QKD) within a unified platform.
+
+Slide: 6. System Analysis
+ Proposed system overview: A hybrid system combining a Python-based Quantum Engine (using Qiskit) with a Node.js backend and a React frontend.
+ Software requirements: 
+  - Python 3.x (Qiskit, NumPy)
+  - Node.js (Express)
+  - React (Frontend)
+  - Hardhat (Ethereum Simulation)
+ Hardware requirements: Standard PC (Quantum behavior is simulated via Qiskit BasicProvider).
+
+Slide: 7. System Design
+ System architecture diagram:
+  [React Frontend] <--> [Node.js API Server] <--> [Python Quantum Engine]
+                                      ^
+                                      |
+                                [Blockchain/Hardhat]
+ Workflow/flowchart: 
+  User Request -> API Controller -> Python Script Execution -> Qiskit Simulation -> Result JSON -> Frontend Display.
+ Module breakdown:
+  1. Shor's Algorithm Module: Factors integers to break keys.
+  2. Lattice Cryptography Module: Generates quantum-safe signatures.
+  3. QKD Module: Simulates BB84 key exchange.
+  4. Quantum Mining Module: Simulates Grover's search.
+
+SLIDE 8: IMPLEMENTATION
+A. IMPLEMENTATION PHASES
+Phase 1: Quantum Engine Development (Python/Qiskit scripts for Shor, BB84, Grover, Lattice).
+Phase 2: Backend API Development (Node.js/Express to interface with Python).
+Phase 3: Frontend Development (React UI for user interaction).
+Phase 4: Integration & Testing.
+B. DEVELOPMENT ENVIRONMENT
+• Operating System: Windows/Linux/macOS
+• IDE: VS Code / PyCharm
+• Version Control: Git, GitHub
+• Collaboration Tools: GitHub
+• Libraries: Qiskit, Express.js, React
+
+SLIDE 9: EXPERIMENTATION
+A. EXPERIMENTAL SETUP
+• Local environment with Python Qiskit simulator.
+• Node.js server handling requests.
+B. EXPERIMENTS CONDUCTED
+1. Factoring N=15 using Shor's Algorithm (Qiskit).
+2. Generating CRYSTALS-Dilithium signatures (Lattice Simulation).
+3. Simulating BB84 Key Exchange with and without eavesdropping.
+4. Simulating Grover's Algorithm for nonce discovery (Mining).
+C. EVALUATION METRICS
+• Success rate of factorization.
+• QBER (Quantum Bit Error Rate) in BB84.
+• Speedup factor in Grover's search vs. classical search.
+
+SLIDE 10: RESULTS & ANALYSIS
+A. QUANTITATIVE RESULTS
+• Shor's: Successfully factored 15 into 3 and 5.
+• BB84: Detected eavesdropping when QBER > 11%.
+• Grover's: Demonstrated quadratic speedup in finding the target nonce.
+B. VISUAL RESULTS
+• Quantum circuit diagrams (Qiskit output).
+• Real-time logs of quantum state measurements.
+C. COMPARISON WITH BASELINE/ Base Model
+• Classical Factoring vs. Shor's (Exponential speedup).
+• Classical Mining vs. Grover's (Quadratic speedup).
+• RSA/ECDSA vs. Lattice-based Signatures (Security).
+
+SLIDE 11: DISCUSSION
+A. KEY FINDINGS
+• Quantum algorithms pose a real existential threat to current blockchain cryptography.
+• Lattice-based cryptography and QKD offer viable paths to quantum resistance.
+B. ANALYSIS OF RESULTS
+• Simulations confirm the theoretical advantages of quantum algorithms.
+C. LIMITATIONS & CHALLENGES
+• Current quantum hardware is noisy (NISQ era); simulations are ideal but limited by classical memory.
+D. PRACTICAL IMPLICATIONS
+• Blockchains must upgrade to PQC signature schemes (like Dilithium/Falcon) to survive the quantum era.
+
+SLIDE 12: CONCLUSION
+A. PROJECT SUMMARY
+• Fortress-Q successfully demonstrates the quantum threat landscape and implements a prototype quantum-resistant vault.
+B. ACHIEVEMENTS
+• Integrated multiple quantum algorithms into a single accessible platform.
+C. KEY CONTRIBUTIONS
+• Educational value in visualizing quantum attacks and defenses.
+• Proof-of-concept for quantum-safe blockchain migration.
+D. IMPACT STATEMENT
+• Prepares the developer community for the inevitable transition to post-quantum cryptography.
+
+SLIDE 13: FUTURE ENHANCEMENTS
+• Integration with real IBM Quantum hardware via API.
+• Implementation of a full ERC-4337 Account Abstraction wallet with PQC.
+• Mobile application for the Quantum Vault.
+
+SLIDE 14: REFERENCES
+A. RESEARCH PAPERS
+[1] Shor, P.W. "Algorithms for quantum computation: discrete logarithms and factoring." IEEE FOCS, 1994.
+[2] Grover, L.K. "A fast quantum mechanical algorithm for database search." ACM STOC, 1996.
+[3] NIST. "Post-Quantum Cryptography Standardization."
+B. DATASETS
+[D1] Qiskit Documentation. IBM Quantum.
+C. ONLINE RESOURCES
+[W1] Ethereum Foundation. "Post-Quantum Cryptography."
+[W2] IBM Quantum Experience.
+
+SLIDE 16: THANK YOU & Q&A (FINAL SLIDE)

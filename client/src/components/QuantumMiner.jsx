@@ -18,7 +18,7 @@ const QuantumMiner = () => {
         try {
             const token = localStorage.getItem('token');
             const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const res = await axios.post(`${API_URL}/api/auth/mine`, {}, {
+            const res = await axios.post(`${API_URL}/api/quantum/mine`, {}, {
                 headers: { 'x-auth-token': token }
             });
             const quantumData = res.data;
