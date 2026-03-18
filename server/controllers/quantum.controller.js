@@ -16,7 +16,7 @@ const runBB84 = (isAttack) => {
 
         console.log(`⚛️ Starting BB84 Simulation (Attack: ${isAttack})...`);
 
-        const pythonProcess = spawn("python", args);
+        const pythonProcess = spawn("python3", args);
         let dataString = "";
 
         pythonProcess.stdout.on('data', (data) => dataString += data.toString());
@@ -48,7 +48,7 @@ export const negotiateQuantumKey = async (req, res) => {
 const runMiningScript = () => {
     return new Promise((resolve) => {
         const scriptPath = path.join(__dirname, '../quantum_mining.py');
-        const pythonProcess = spawn('python', [scriptPath]);
+        const pythonProcess = spawn('python3', [scriptPath]);
 
         let dataString = '';
         pythonProcess.stdout.on('data', (d) => dataString += d.toString());
@@ -80,7 +80,7 @@ export const mineQuantumBlock = async (req, res) => {
 const runSignatureScript = (msg) => {
     return new Promise((resolve) => {
         const scriptPath = path.join(__dirname, '../lattice_sign.py');
-        const pythonProcess = spawn('python', [scriptPath, msg]);
+        const pythonProcess = spawn('python3', [scriptPath, msg]);
         let dataString = '';
         pythonProcess.stdout.on('data', (d) => dataString += d.toString());
         pythonProcess.on('close', () => {
@@ -117,7 +117,7 @@ const runShorScript = (walletType, targetValue) => {
             args.push("--target_value", targetValue.toString());
         }
 
-        const pythonProcess = spawn('python', args);
+        const pythonProcess = spawn('python3', args);
 
         let dataString = '';
         pythonProcess.stdout.on('data', (d) => dataString += d.toString());

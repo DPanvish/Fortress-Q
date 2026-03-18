@@ -27,7 +27,6 @@ const QuantumMiner = () => {
             // 2. Run Classical Simulation to find the SAME nonce
             // Real World Scenario: 6-bit Search Space (N=64)
             const target = quantumData.decimal_value;
-            
             for (let i = 0; i < 64; i++) {
                 setClassicalLog(prev => [...prev, `Checking Nonce ${i.toString(2).padStart(6, '0')}... ❌`]);
                 // Faster delay to accommodate larger search space
